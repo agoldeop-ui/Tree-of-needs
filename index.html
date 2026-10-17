@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Needs Tree — Parent Protocol</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EAF2F8;--ink:#1B2A38;--mute:#5C7186;--card:#F7FBFE;--line:#C6D8E6;--moss:#5B8FB9;--hot:#8B5F7F;
+  --c-roots:#6B7F94;--c-trunk:#5B8FB9;--c-branches:#4A9DB8;--c-leaves:#7BA8C4;--c-fruits:#7A6B9C;
+  --c-healthy:#5B8FB9;--c-moderate:#C68B4A;--c-strained:#B85C6B;
+  --radius:14px;--radius-sm:10px;--radius-xs:8px;
+  --shadow-sm:0 1px 3px rgba(27,42,56,.06);
+  --shadow-md:0 4px 16px rgba(27,42,56,.09);
+  --shadow-lg:0 12px 40px rgba(27,42,56,.14);
+  --transition:220ms cubic-bezier(0.16,1,0.3,1);
+  --font-display:'Fraunces',Georgia,serif;
+  --font-body:'Public Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{min-height:100dvh;line-height:1.6;font-family:var(--font-body);font-size:16px;color:var(--ink);background:var(--bg)}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit}
+h1,h2,h3,h4{line-height:1.2;font-family:var(--font-display)}
+p{max-width:72ch}
+:focus-visible{outline:2px solid var(--moss);outline-offset:3px;border-radius:var(--radius-xs)}
+.app{display:flex;min-height:100dvh}
+.sidebar{width:240px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);padding:24px 0;position:fixed;top:0;bottom:0;left:0;z-index:100;display:flex;flex-direction:column;transition:transform var(--transition)}
+.sidebar-brand{padding:0 24px 24px;display:flex;align-items:center;gap:10px}
+.sidebar-brand .logo{width:36px;height:36px;border-radius:var(--radius-xs);overflow:hidden;flex-shrink:0;background:var(--moss);display:flex;align-items:center;justify-content:center;color:#fff}
+.sidebar-brand span{font-family:var(--font-display);font-weight:700;font-size:1.1rem}
+.nav{flex:1;padding:0 12px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius-sm);font-size:.92rem;font-weight:500;color:var(--mute);transition:all var(--transition);cursor:pointer;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg);color:var(--ink)}
+.nav-item.active{background:var(--ink);color:var(--bg)}
+.nav-icon{width:20px;height:20px;opacity:.6;flex-shrink:0}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-footer{padding:16px 24px;font-size:.78rem;color:var(--mute);border-top:1px solid var(--line)}
+.sidebar-footer a{display:block;padding:4px 0;text-decoration:none;color:inherit}
+.main{flex:1;margin-left:240px;padding:32px 40px 80px;max-width:100%}
+.mobile-header{display:none;align-items:center;gap:12px;margin-bottom:24px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);position:sticky;top:0;z-index:50}
+.mobile-header button{padding:8px;border-radius:var(--radius-xs);background:var(--bg);border:1px solid var(--line);display:flex;align-items:center}
+.mobile-header span{font-family:var(--font-display);font-weight:700;font-size:1.2rem}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);box-shadow:var(--shadow-lg)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:20px 16px 60px}
+  .mobile-header{display:flex}
+}
+.page{display:none}
+.page.active{display:block}
+.onboarding{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;max-width:520px;margin:0 auto}
+.onboarding h1{font-size:2.1rem;margin-bottom:16px}
+.onboarding p{font-size:1.08rem;color:var(--mute);margin-bottom:24px;line-height:1.7;max-width:46ch;margin-left:auto;margin-right:auto;text-align:center}
+.onboarding .step-indicator{display:flex;gap:8px;margin-bottom:32px}
+.onboarding .step-dot{width:10px;height:10px;border-radius:50%;background:var(--line);transition:all var(--transition)}
+.onboarding .step-dot.active{background:var(--moss);transform:scale(1.2)}
+.onboarding .btn{width:100%;justify-content:center;padding:16px;margin-bottom:12px}
+.onboard-icon{width:120px;height:120px;margin:0 auto 24px}
+.context-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:560px;margin:0 auto}
+.context-card{padding:22px 18px;border-radius:var(--radius);border:2px solid var(--line);background:var(--card);cursor:pointer;transition:all var(--transition);text-align:center}
+.context-card:hover{border-color:var(--moss);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.context-card .cc-icon{font-size:2rem;margin-bottom:8px}
+.context-card .cc-title{font-family:var(--font-display);font-weight:700;font-size:1rem}
+.context-card .cc-desc{font-size:.78rem;color:var(--mute);margin-top:4px}
+@media(max-width:500px){.context-grid{grid-template-columns:1fr}}
+.diag-progress{height:6px;background:var(--line);border-radius:3px;margin-bottom:32px;overflow:hidden;max-width:600px;margin-left:auto;margin-right:auto}
+.diag-bar{height:100%;background:var(--moss);width:0;transition:width .4s ease}
+.diag-q{max-width:600px;margin:0 auto;background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:32px 28px}
+.diag-q .q-num{font-size:.82rem;color:var(--mute);margin-bottom:8px}
+.diag-q .q-layer{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:12px}
+.diag-q .q-text{font-family:var(--font-display);font-size:1.25rem;margin-bottom:24px;line-height:1.4}
+.diag-scale{display:flex;gap:8px}
+.diag-scale button{flex:1;min-width:50px;padding:14px 8px;border:2px solid var(--line);border-radius:var(--radius-sm);font-size:.9rem;background:var(--bg);transition:all var(--transition);min-height:56px}
+.diag-scale button:hover{border-color:var(--moss)}
+.diag-scale button.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.diag-scale .lab{display:block;font-size:.68rem;margin-top:2px;opacity:.7}
+.results-container{max-width:720px;margin:0 auto}
+.results-header{text-align:center;margin-bottom:32px}
+.results-header h1{font-size:2rem;margin-bottom:8px}
+.results-header p{color:var(--mute);margin:0 auto}
+.layer-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
+.layer-bar-item{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all var(--transition);position:relative}
+.layer-bar-item:hover{border-color:var(--moss);transform:translateX(2px)}
+.layer-bar-item.focused{border-color:var(--moss);border-width:2px;padding:13px 15px;background:rgba(91,143,185,.06)}
+.layer-bar-item .lbi-info{flex:1;min-width:0}
+.layer-bar-item .lbi-name{font-family:var(--font-display);font-weight:700;font-size:.98rem;margin-bottom:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.layer-bar-item .lbi-score{font-size:.78rem;color:var(--mute)}
+.layer-bar-item .lbi-track{width:120px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;flex-shrink:0}
+.layer-bar-item .lbi-fill{height:100%;border-radius:4px;transition:width 1s ease}
+.layer-bar-item.strained .lbi-fill{background:var(--c-strained);animation:pulse-red 1.6s infinite}
+.layer-bar-item.moderate .lbi-fill{background:var(--c-moderate)}
+.layer-bar-item.healthy .lbi-fill{background:var(--c-healthy)}
+.layer-bar-item.strained{border-color:rgba(184,92,107,.4)}
+.layer-bar-item.strained.focused{border-color:var(--c-strained);background:rgba(184,92,107,.05)}
+@keyframes pulse-red{0%{opacity:1;box-shadow:0 0 0 0 rgba(184,92,107,.5)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(184,92,107,0)}100%{opacity:1;box-shadow:0 0 0 0 rgba(184,92,107,0)}}
+.layer-emergency-count{font-size:.7rem;font-weight:600;color:var(--c-strained);background:rgba(184,92,107,.1);padding:2px 8px;border-radius:10px;white-space:nowrap}
+.results-detail{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.results-detail .rd-tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;color:#fff}
+.results-detail h2{font-size:1.35rem;margin-bottom:12px}
+.results-detail .rd-section{margin-bottom:16px}
+.results-detail .rd-section h3{font-size:.95rem;margin-bottom:6px;font-family:var(--font-body);font-weight:600}
+.results-detail .rd-section p{font-size:.92rem;color:var(--mute);line-height:1.6}
+.results-detail .rd-question{font-style:italic;border-left:3px solid var(--moss);padding-left:14px;margin:16px 0;color:var(--ink);font-size:.95rem}
+.results-detail .rd-context{font-size:.78rem;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.sort-section{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.sort-section h2{font-size:1.3rem;margin-bottom:8px}
+.sort-section p{font-size:.9rem;color:var(--mute);margin-bottom:16px}
+.sort-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.sort-card{padding:12px;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--bg);cursor:pointer;transition:all var(--transition);text-align:left;font-size:.85rem;font-weight:500;position:relative}
+.sort-card:hover{border-color:var(--moss)}
+.sort-card.selected{border-color:var(--c-strained);background:rgba(184,92,107,0.06)}
+.sort-card.selected::after{content:"\2713";position:absolute;top:6px;right:10px;color:var(--c-strained);font-weight:700}
+.sort-card.disabled{opacity:.35;pointer-events:none}
+.sort-card .sc-name{font-weight:600;margin-bottom:2px}
+.sort-card .sc-desc{font-size:.72rem;color:var(--mute);font-weight:400}
+.sort-counter{text-align:center;font-size:.9rem;color:var(--mute);margin-bottom:12px}
+.sort-counter strong{color:var(--ink)}
+.sort-complete{text-align:center;padding:12px;background:rgba(91,143,185,.08);border-radius:var(--radius-sm);font-size:.9rem;color:var(--moss);font-weight:600}
+.reframe-section{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.reframe-section h2{font-size:1.3rem;margin-bottom:8px}
+.reframe-section > p{font-size:.9rem;color:var(--mute);margin-bottom:16px}
+.reframe-item{border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;margin-bottom:14px;background:var(--bg)}
+.reframe-item .ri-need{font-family:var(--font-display);font-weight:700;font-size:1.05rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.reframe-item .ri-need .ri-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.reframe-item .ri-block{margin-bottom:12px}
+.reframe-item .ri-label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:4px}
+.reframe-item .ri-text{font-size:.88rem;line-height:1.5;padding:10px 12px;border-radius:var(--radius-xs);border-left:3px solid var(--line);background:var(--card)}
+.reframe-item .ri-text.excuse{border-left-color:var(--hot);font-style:italic}
+.reframe-item .ri-text.strategy{border-left-color:var(--c-moderate)}
+.reframe-item .ri-text.action{border-left-color:var(--c-healthy)}
+.reframe-item .ri-input{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-xs);background:var(--card);font-family:var(--font-body);font-size:.88rem;margin-top:6px;resize:vertical;min-height:60px;color:var(--ink)}
+.reframe-item .ri-input:focus{outline:none;border-color:var(--moss)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:var(--radius-sm);font-size:.92rem;font-weight:600;transition:all var(--transition);min-height:44px;border:1.5px solid transparent}
+.btn-primary{background:var(--ink);color:var(--bg)}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+.btn-outline{border-color:var(--ink);color:var(--ink)}
+.btn-outline:hover{background:var(--card)}
+.btn-ghost{color:var(--mute)}
+.btn-ghost:hover{color:var(--ink)}
+.btn-small{padding:8px 14px;font-size:.82rem;min-height:36px}
+.btn:disabled{opacity:.4;pointer-events:none}
+.action-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.action-row.left{justify-content:flex-start}
+.tree-map-page{max-width:680px;margin:0 auto}
+.tree-map-instructions{text-align:center;margin-bottom:28px}
+.tree-map-instructions h2{font-size:1.6rem;margin-bottom:8px}
+.tree-map-instructions p{color:var(--mute);max-width:480px;margin:0 auto}
+.tree-map-container{display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.tm-layer{border:2px solid var(--lk,var(--line));border-radius:var(--radius);padding:18px;background:var(--card);min-height:80px;transition:all var(--transition)}
+.tm-layer.tm-strained{box-shadow:0 0 0 1px rgba(184,92,107,.3) inset}
+.tm-layer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap}
+.tm-layer-head .tm-name-wrap{display:flex;align-items:center;gap:10px}
+.tm-layer-head .tm-name{font-family:var(--font-display);font-weight:700;font-size:1.05rem;color:var(--lk)}
+.tm-layer-head .tm-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tm-layer-head .tm-status-dot.healthy{background:var(--c-healthy)}
+.tm-layer-head .tm-status-dot.moderate{background:var(--c-moderate)}
+.tm-layer-head .tm-status-dot.strained{background:var(--c-strained);animation:pulse-red 1.6s infinite}
+.tm-layer-head .tm-status-dot.unknown{background:var(--line)}
+.tm-layer-head .tm-desc{font-size:.78rem;color:var(--lk);opacity:.85}
+.tm-layer-head .tm-count{font-family:var(--font-display);font-weight:700;font-size:1.2rem;color:var(--lk)}
+.tm-needs{display:flex;flex-wrap:wrap;gap:8px;min-height:32px}
+.tm-need{padding:6px 14px;border-radius:20px;font-size:.85rem;font-weight:500;background:var(--lk);color:#fff;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all var(--transition);border:2px solid transparent;position:relative}
+.tm-need:hover{opacity:.85;transform:scale(1.03)}
+.tm-need.emergency{border-color:var(--c-strained);box-shadow:0 0 0 2px rgba(184,92,107,.25);background:var(--lk)}
+.tm-need.emergency::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c-strained);flex-shrink:0}
+.tm-need .remove{opacity:.7;font-size:1rem;line-height:1}
+.tm-empty{color:var(--mute);font-size:.85rem;font-style:italic;padding:4px 0;opacity:.7}
+.tm-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.tm-legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:16px 0;font-size:.78rem;color:var(--mute)}
+.tm-legend-item{display:flex;align-items:center;gap:6px}
+.tm-legend-item .dot{width:10px;height:10px;border-radius:50%}
+.tm-legend-item .dot.healthy{background:var(--c-healthy)}
+.tm-legend-item .dot.moderate{background:var(--c-moderate)}
+.tm-legend-item .dot.strained{background:var(--c-strained)}
+.tm-legend-item .dot.emergency{background:transparent;border:2px solid var(--c-strained);width:10px;height:10px}
+.tm-focus-note{text-align:center;font-size:.82rem;color:var(--mute);margin-bottom:20px;font-style:italic}
+.deck-tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;justify-content:center}
+.deck-tab{padding:10px 16px;border-radius:var(--radius-sm);font-size:.88rem;font-weight:600;border:1.5px solid var(--line);transition:all var(--transition);min-height:40px}
+.deck-tab:hover{border-color:var(--moss)}
+.deck-tab.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.deck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+@media(max-width:600px){.deck-grid{grid-template-columns:repeat(2,1fr)}}
+.deck-card{border-radius:var(--radius);border:2px solid var(--ck,var(--ink));background:var(--card);overflow:hidden;display:flex;flex-direction:column}
+.deck-card .dc-art{aspect-ratio:3/4;overflow:hidden;background:var(--ck,var(--moss))}
+.deck-card .dc-art svg{width:100%;height:100%}
+.deck-card .dc-body{padding:10px 12px 12px}
+.deck-card .dc-tag{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ck)}
+.deck-card .dc-name{font-family:var(--font-display);font-weight:700;font-size:.95rem;line-height:1.2;margin-top:2px}
+.deck-card .dc-desc{font-size:.76rem;color:var(--mute);margin-top:4px}
+.deck-card.dark{background:#1B2A38;color:#DCE7F0;border-color:#1B2A38}
+.deck-card.dark .dc-tag{color:#E7B3C9}
+.deck-card.dark .dc-desc{color:#9FB0C3}
+.deck-card.strat{border-style:dashed}
+.journal-page{max-width:600px;margin:0 auto}
+.journal-new{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.journal-new h3{margin-bottom:12px}
+.journal-new textarea{width:100%;min-height:100px;padding:14px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:.95rem;resize:vertical;line-height:1.6}
+.journal-new textarea:focus{outline:none;border-color:var(--moss)}
+.journal-entry{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:12px}
+.journal-entry .je-date{font-size:.78rem;color:var(--mute);margin-bottom:6px}
+.journal-entry .je-card{font-family:var(--font-display);font-weight:700;font-size:1.05rem;margin-bottom:6px}
+.journal-entry .je-reflection{font-size:.9rem;line-height:1.6;white-space:pre-wrap}
+.journal-entry .je-delete{font-size:.78rem;color:var(--mute);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:6px}
+.journal-entry .je-delete:hover{color:var(--c-strained)}
+.workshop-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:32px;margin:24px auto;max-width:640px;text-align:center}
+.workshop-card .wc-badge{display:inline-block;background:var(--moss);color:#fff;padding:4px 12px;border-radius:6px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.workshop-card h2{font-size:1.5rem;margin-bottom:8px}
+.workshop-form{display:flex;flex-direction:column;gap:12px;max-width:400px;margin:20px auto 0}
+.workshop-form input{padding:12px 16px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);font-size:.92rem;color:var(--ink)}
+.workshop-form input:focus{outline:none;border-color:var(--moss)}
+.today-hero{text-align:center;margin-bottom:32px}
+.today-hero h1{font-size:clamp(1.7rem,1.2rem+2vw,2.4rem);margin-bottom:8px}
+.today-hero p{color:var(--mute);font-size:1.02rem;margin:0 auto;max-width:480px}
+.today-date{font-size:.78rem;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;text-align:center}
+.safety-note{font-size:.76rem;color:var(--mute);text-align:center;margin-top:32px;padding:16px;border-top:1px solid var(--line)}
+.empty-state{text-align:center;padding:48px 20px;color:var(--mute)}
+.empty-state .es-icon{font-size:2rem;margin-bottom:12px;opacity:.4}
+.empty-state h3{font-size:1.1rem;color:var(--ink);margin-bottom:4px}
+.empty-state p{font-size:.9rem;margin:0 auto;max-width:320px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg);border-radius:var(--radius);max-width:600px;width:100%;max-height:85vh;overflow-y:auto;padding:28px;box-shadow:var(--shadow-lg)}
+.modal h3{font-size:1.2rem;margin-bottom:4px}
+.modal > p{font-size:.88rem;color:var(--mute);margin-bottom:16px}
+.modal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:500px){.modal-grid{grid-template-columns:repeat(2,1fr)}}
+.modal-need{padding:10px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--line);font-size:.85rem;font-weight:500;cursor:pointer;transition:all var(--transition);text-align:center}
+.modal-need:hover{border-color:var(--moss);background:var(--card)}
+.modal-need.added{opacity:.4;pointer-events:none}
+.modal-close{position:sticky;top:0;float:right;font-size:1.4rem;padding:4px 8px;color:var(--mute)}
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:210;display:none}
+.drawer-overlay.show{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,100%);background:var(--bg);z-index:220;box-shadow:var(--shadow-lg);transform:translateX(100%);transition:transform .3s cubic-bezier(0.16,1,0.3,1);overflow-y:auto;padding:28px}
+.drawer.show{transform:translateX(0)}
+.drawer-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px}
+.drawer-title{font-family:var(--font-display);font-weight:700;font-size:1.4rem}
+.drawer-tag{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.drawer-close{font-size:1.6rem;padding:4px 8px;color:var(--mute);line-height:1}
+.drawer-desc{font-size:.9rem;color:var(--mute);margin-bottom:20px}
+.drawer-section{margin-bottom:20px}
+.drawer-section .ds-label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:6px}
+.drawer-section .ds-text{font-size:.92rem;line-height:1.6;padding:12px 14px;border-radius:var(--radius-sm);border-left:3px solid var(--line);background:var(--card)}
+.drawer-section .ds-text.excuse{border-left-color:var(--hot);font-style:italic}
+.drawer-section .ds-text.strategy{border-left-color:var(--c-moderate)}
+.drawer-actions{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.drawer-action{padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--line);background:var(--card);cursor:pointer;transition:all var(--transition);font-size:.9rem;line-height:1.5;text-align:left}
+.drawer-action:hover{border-color:var(--moss)}
+.drawer-action.selected{border-color:var(--moss);border-width:2px;background:rgba(91,143,185,.08);padding:11px 13px}
+.drawer-action.selected::before{content:"\2713  ";color:var(--moss);font-weight:700}
+.drawer-shuffle{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.drawer-custom{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--card);font-family:var(--font-body);font-size:.9rem;resize:vertical;min-height:70px;color:var(--ink);margin-top:8px}
+.drawer-custom:focus{outline:none;border-color:var(--moss)}
+.drawer-actions-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.em-toggle{display:flex;align-items:center;gap:10px;padding:14px;border-radius:var(--radius-sm);border:1.5px solid var(--line);cursor:pointer;transition:all var(--transition);background:var(--card)}
+.em-toggle:hover{border-color:var(--c-strained)}
+.em-toggle.on{border-color:var(--c-strained);background:rgba(184,92,107,.06)}
+.em-toggle .toggle-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;transition:all var(--transition)}
+.em-toggle.on .toggle-dot{background:var(--c-strained);border-color:var(--c-strained)}
+.em-toggle .toggle-label{flex:1;font-size:.9rem;font-weight:500}
+.em-toggle .toggle-hint{font-size:.75rem;color:var(--mute)}
+@media(max-width:600px){.drawer{width:100%}}
+.overview-summary{text-align:center;font-size:.92rem;color:var(--mute);margin-bottom:24px;padding:12px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--line)}
+.overview-summary strong{color:var(--ink)}
+.tree-state{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card);overflow:hidden;margin-bottom:20px}
+.ts-row{border-bottom:1px solid var(--line);cursor:pointer;transition:background var(--transition)}
+.ts-row:last-child{border-bottom:none}
+.ts-row:hover{background:var(--bg)}
+.ts-row.open{background:rgba(91,143,185,.04)}
+.ts-line{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.ts-name{font-family:var(--font-display);font-weight:700;font-size:.95rem;flex:0 0 auto;min-width:80px}
+.ts-row.strained .ts-name{color:var(--c-strained)}
+.ts-row.moderate .ts-name{color:var(--c-moderate)}
+.ts-row.healthy .ts-name{color:var(--c-healthy)}
+.ts-badge{font-size:.68rem;font-weight:600;color:#fff;background:var(--c-strained);padding:1px 7px;border-radius:10px;flex-shrink:0}
+.ts-score{font-size:.74rem;color:var(--mute);flex:0 0 auto;min-width:90px;text-align:right;margin-left:auto}
+.ts-track{width:60px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;flex-shrink:0}
+.ts-fill{display:block;height:100%;border-radius:3px}
+.ts-row.strained .ts-fill{background:var(--c-strained)}
+.ts-row.moderate .ts-fill{background:var(--c-moderate)}
+.ts-row.healthy .ts-fill{background:var(--c-healthy)}
+.ts-caret{font-size:.9rem;color:var(--mute);flex-shrink:0;width:14px;text-align:center}
+.ts-panel{padding:0 14px 18px;border-top:1px dashed var(--line);margin-top:-1px;padding-top:14px}
+.ts-panel .sort-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.ts-panel .sort-card{padding:10px}
+.ts-panel .sort-card .sc-name{font-size:.82rem}
+.ts-panel .sort-card .sc-desc{font-size:.68rem}
+.sticky-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+@media(max-width:520px){.sticky-grid{grid-template-columns:1fr}}
+.sticky-note{position:relative;padding:16px;border-radius:4px;background:#FEF7E0;box-shadow:2px 3px 0 rgba(27,42,56,.08);border:1px solid rgba(27,42,56,.06);transition:all var(--transition);cursor:pointer}
+.sticky-note:nth-child(2n){background:#EDF5E8}
+.sticky-note:nth-child(3n){background:#F9EBEF}
+.sticky-note:nth-child(5n){background:#EAF2F5}
+.sticky-note:hover{transform:translateY(-2px);box-shadow:2px 5px 0 rgba(27,42,56,.1)}
+.sticky-note .sn-tag{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.sticky-note .sn-plan{font-size:.88rem;line-height:1.5;font-style:italic;color:var(--ink)}
+.sticky-note .sn-edit{font-size:.72rem;color:var(--mute);margin-top:10px;font-weight:500}
+.sticky-section-title{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-bottom:12px}
+.play-hero{text-align:center;margin-bottom:32px}
+.play-hero h1{font-size:clamp(1.7rem,1.2rem+2vw,2.4rem);margin-bottom:8px}
+.play-hero p{color:var(--mute);font-size:1.02rem;margin:0 auto;max-width:520px}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px}
+@media(max-width:600px){.game-grid{grid-template-columns:1fr}}
+.game-card{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:22px;transition:all var(--transition);display:flex;flex-direction:column;gap:10px}
+.game-card.live{cursor:pointer}
+.game-card.live:hover{border-color:var(--moss);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.game-card.locked{opacity:.72}
+.game-card .gc-badge{display:inline-block;font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:20px;background:var(--moss);color:#fff;align-self:flex-start}
+.game-card.locked .gc-badge{background:var(--mute)}
+.game-card .gc-title{font-family:var(--font-display);font-weight:700;font-size:1.2rem}
+.game-card .gc-for{font-size:.78rem;color:var(--mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.game-card .gc-pitch{font-size:.92rem;color:var(--mute);line-height:1.5;flex:1}
+.game-card .gc-action{font-size:.85rem;font-weight:600;color:var(--moss);margin-top:4px}
+.game-card.locked .gc-action{color:var(--mute)}
+.scope-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.scope-card{background:var(--card);border:2px solid var(--line);border-radius:var(--radius-sm);padding:16px;cursor:pointer;transition:all var(--transition);text-align:left}
+.scope-card:hover{border-color:var(--moss)}
+.scope-card.selected{border-color:var(--moss);border-width:2px;background:rgba(91,143,185,.08)}
+.scope-card.locked{opacity:.6;cursor:not-allowed}
+.scope-card .sc-title{font-family:var(--font-display);font-weight:700;font-size:1rem;margin-bottom:4px}
+.scope-card .sc-sub{font-size:.78rem;color:var(--mute)}
+.deal-area{text-align:center;padding:32px 16px}
+.dealt-card{padding:14px 16px;border-radius:var(--radius-sm);border:2px solid var(--line);background:var(--card);cursor:pointer;transition:all var(--transition);font-size:.88rem;font-weight:600;text-align:center;min-width:120px;max-width:180px}
+.dealt-card.flipped{border-color:var(--moss);background:var(--bg)}
+.dealt-card .dc-name{font-family:var(--font-display);font-weight:700;font-size:.95rem}
+.dealt-card .dc-tag{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-top:4px}
+.pile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:24px}
+.pile{background:var(--card);border:2px dashed var(--line);border-radius:var(--radius-sm);padding:14px;min-height:120px}
+.pile .pile-title{font-family:var(--font-display);font-weight:700;font-size:.92rem;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.pile .pile-need{display:inline-block;padding:4px 10px;background:var(--bg);border:1px solid var(--line);border-radius:14px;font-size:.8rem;margin:3px 3px 0 0}
+.pile.pile-emergency{border-style:solid;border-color:rgba(184,92,107,.4)}
+.pile.pile-emergency.full{background:rgba(184,92,107,.05)}
+.game-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.closing-prompt{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);padding:24px;margin-top:24px}
+.closing-prompt h3{font-family:var(--font-display);font-size:1.2rem;margin-bottom:8px}
+.closing-prompt p{font-size:.9rem;color:var(--mute);margin-bottom:12px}
+.closing-prompt textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:.9rem;resize:vertical;min-height:80px}
+.closing-prompt textarea:focus{outline:none;border-color:var(--moss)}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">
+        <svg viewBox="0 0 40 40" width="36" height="36"><circle cx="20" cy="12" r="6" fill="#F7FBFE"/><rect x="18" y="14" width="4" height="20" fill="#F7FBFE"/><circle cx="12" cy="20" r="4" fill="#F7FBFE" opacity=".8"/><circle cx="28" cy="20" r="4" fill="#F7FBFE" opacity=".8"/></svg>
+      </div>
+      <span>Needs Tree</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-item" data-page="today"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Today</button>
+      <button class="nav-item" data-page="diagnostic"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Diagnostic</button>
+      <button class="nav-item" data-page="dark"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 2 5 5 5 9c0 2 1 4 3 5-2 1-3 3-3 5v3h14v-3c0-2-1-4-3-5 2-1 3-3 3-5 0-4-3-7-7-7z"/></svg>Dark needs</button>
+      <button class="nav-item" data-page="play"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Play</button>
+      <button class="nav-item" data-page="learn"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Learn</button>
+      <button class="nav-item" data-page="tree"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 2 5 5 5 9c0 2 1 4 3 5-2 1-3 3-3 5v3h14v-3c0-2-1-4-3-5 2-1 3-3 3-5 0-4-3-7-7-7z"/></svg>My Tree</button>
+      <button class="nav-item" data-page="journal"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Journal</button>
+      <button class="nav-item" data-page="workshops"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Continue</button>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" onclick="event.preventDefault();navigateTo('landing')">← Home</a>
+      <a href="#" onclick="return false">About</a>
+      <a href="#" onclick="return false">Privacy</a>
+      <p style="margin-top:8px">Reflection tool, not therapy or diagnosis.</p>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="mobile-header">
+      <button id="menuBtn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <span>Needs Tree</span>
+    </div>
+    <div class="page active" id="page-landing"><div id="landingContent"></div></div>
+<div class="page" id="page-onboarding"><div class="onboarding" id="onboardingContent"></div></div>
+    <div class="page" id="page-context"><div class="today-hero"><h1>Who is taking this today?</h1><p>This tailors the language and the needs we surface. Nothing is stored anywhere.</p></div><div class="context-grid" id="contextGrid"></div></div>
+    <div class="page" id="page-today"><div class="today-date" id="todayDate"></div><div class="today-hero"><h1>What layer needs feeding today?</h1><p>Your Needs Tree is a map of what sustains you, shapes you, and flows through you. Name the need before it becomes behavior.</p></div><div id="todayBody"></div></div>
+    <div class="page" id="page-diagnostic"><div id="diagContent"></div></div>
+    <div class="page" id="page-dark">
+  <div class="today-hero"><h1>The needs you were taught to hide.</h1><p>Eleven cards for control, anger, attention, revenge, and the rest. They're not flaws. They're needs that went underground and came out sideways.</p></div>
+  <div id="darkBody"></div>
+</div>
+    <div class="page" id="page-play"><div id="playContent"></div></div>
+    <div class="page" id="page-learn">
+      <div class="today-hero"><h1>Learn</h1><p>Short pieces about needs, why they hide, and how to work with them. Written in plain language.</p></div>
+      <div id="learnBody"></div>
+      <div class="safety-note">Reflection tool, not therapy or diagnosis.</div>
+    </div>
+    <div class="page" id="page-tree">
+      <div class="tree-map-instructions"><h2>Your Personal Tree</h2><p>Mark what's missing, not what you have. This is a map of what needs attention.</p><p style="font-size:.85rem;color:var(--moss);margin-top:10px;font-weight:500">Tap any need to open its strategies and write your plan →</p></div>
+      <div class="tm-legend">
+        <div class="tm-legend-item"><span class="dot healthy"></span>Layer healthy</div>
+        <div class="tm-legend-item"><span class="dot moderate"></span>Layer under strain</div>
+        <div class="tm-legend-item"><span class="dot strained"></span>Layer strained</div>
+        <div class="tm-legend-item"><span class="dot emergency"></span>Emergency need</div>
+      </div>
+      <div class="tree-map-container" id="treeMapContainer"></div>
+      <div class="action-row"><button class="btn btn-primary" onclick="openAddNeedModal()">Add a need</button><button class="btn btn-outline" onclick="navigateTo('deck')">Browse deck</button></div>
+      <div class="safety-note">Layers are read from the roots up. If roots and trunk are both strained, start with the roots.</div>
+    </div>
+    <div class="page" id="page-journal"><div class="today-hero"><h1>Your Reflections</h1><p>Write what it stirs. Come back to see what shifts.</p></div><div id="journalContent" class="journal-page"></div></div>
+    <div class="page" id="page-workshops">
+      <div class="today-hero"><h1>You found the words. Now what?</h1><p>You named your emergencies. You saw which layer was starving. This is the part where most people drift back to old patterns — not because the insight failed, but because the insight has nowhere to go.</p></div>
+      <div class="results-detail" style="max-width:640px;margin:0 auto 24px">
+        <h2>What people said after using it</h2>
+        <div class="rd-section" style="font-style:italic;border-left:3px solid var(--moss);padding-left:16px"><p>"I had to go back to the house because I forgot something, and my immediate reaction was 'Ohhh, shit!' But then I remembered that movement is my emergency need, and became excited 'Yeah! More movement to me!'. Such a simple thing suddenly felt aligned with my goals. It is grounding."</p></div>
+        <div class="rd-section" style="font-style:italic;border-left:3px solid var(--moss);padding-left:16px"><p>"I laughed when I realised that I can't add a 4th emergency need to my tree! It made me think better about my current priorities, and also about the needs that might not be an emergency, but still need attention."</p></div>
+        <div class="rd-section"><p style="font-size:.82rem;color:var(--mute);font-style:normal">— from early users, shared with permission</p></div>
+      </div>
+      <div class="results-detail" style="max-width:640px;margin:0 auto 24px">
+        <h2>What you can do today</h2>
+        <div class="rd-section">
+          <ul style="list-style:none;padding:0;margin:0">
+            <li style="padding:8px 0 8px 26px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> Take the diagnostic as many times as you like</li>
+            <li style="padding:8px 0 8px 26px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> Sort your emergencies, layer by layer</li>
+            <li style="padding:8px 0 8px 26px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> Play all four games — solo, or with someone beside you</li>
+            <li style="padding:8px 0 8px 26px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> Open strategies for any need in your tree</li>
+            <li style="padding:8px 0 8px 26px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> Write reflections in the journal</li>
+          </ul>
+        </div>
+      </div>
+      <div class="workshop-card" style="max-width:640px">
+        <span class="wc-badge">What's next</span>
+        <h2>What's free. What's coming.</h2>
+        <p style="color:var(--mute)">Everything you're using right now is free, and stays free. The diagnostic. Your tree. The games. Your if-then plans. Your journal. That's not a demo — it's the product, and it's yours.</p>
+        <p style="font-size:.95rem;margin-top:16px">Later this year we're adding the parts that need a server:</p>
+        <ul style="text-align:left;max-width:420px;margin:12px auto;list-style:none">
+          <li style="padding:6px 0 6px 24px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> Your tree on every device</li>
+          <li style="padding:6px 0 6px 24px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> Reminders at the moment your plan matters</li>
+          <li style="padding:6px 0 6px 24px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> The Dark Needs deck</li>
+          <li style="padding:6px 0 6px 24px;position:relative"><span style="position:absolute;left:0;color:var(--moss);font-weight:700">✓</span> History — your tree from six weeks ago, side by side with today</li>
+        </ul>
+        <p style="font-size:.95rem;margin-top:16px"><strong>If you want to be first to try them, leave your email.</strong></p>
+        <form class="workshop-form" action="https://formsubmit.co/AGOLDEOP@GMAIL.COM" method="POST">
+          <input type="hidden" name="_subject" value="Needs Tree signup">
+          <input type="email" name="email" placeholder="Your email" required>
+          <button type="submit" class="btn btn-primary" style="justify-content:center">Notify me</button>
+        </form>
+        <p style="font-size:.78rem;color:var(--mute);margin-top:12px">One email. Nothing else.</p>
+      </div>
+      <div class="safety-note">Reflection tool, not therapy or diagnosis.</div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="addNeedModal"><div class="modal"><button class="modal-close" onclick="closeModal()">&times;</button><h3 id="modalTitle">Add a need</h3><p id="modalSubtitle">Tap a need to add it to this layer.</p><div class="modal-grid" id="modalGrid"></div></div></div>
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"></div>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+var L = {roots:"Roots", trunk:"Trunk", branches:"Branches", leaves:"Leaves", fruits:"Fruits"};
+var LORDER = ["roots","trunk","branches","leaves","fruits"];
+var Ldesc = {
+  roots:"Essential needs — what makes life livable",
+  trunk:"Core identity and cognitive structure",
+  branches:"Relational and emotional needs",
+  leaves:"Production, play, and regeneration",
+  fruits:"Contribution, meaning, and purpose"
+};
+var Lcolor = {
+  roots:"var(--c-roots)", trunk:"var(--c-trunk)", branches:"var(--c-branches)",
+  leaves:"var(--c-leaves)", fruits:"var(--c-fruits)"
+};
+var LINE = {
+  roots:"Nothing above this works well on an empty tank. Feed the body and the ground under you first.",
+  trunk:"Without a clear sense of what you want, every relationship becomes a negotiation about your worth.",
+  branches:"Loneliness doesn't always need more people. Often it needs more of you shown to the people you have.",
+  leaves:"Output can't hold you up. If your worth rides on producing, one bad season breaks it.",
+  fruits:"Purpose can't be forced. It shows up when the layers below it are fed."
+};
+
+/* Core needs by layer (from big block) */
+var C = [
+  ["roots","Clean air and water","What the body takes in"],
+  ["roots","Nutritious food","Fuel you can rely on"],
+  ["roots","Rest and sleep","Real recovery, not collapse"],
+  ["roots","Shelter","A place that is yours"],
+  ["roots","Access to shelter","A safety net exists"],
+  ["roots","Physical safety","Free from threat"],
+  ["roots","Stability and consistency","Things stay reliable"],
+  ["roots","Health","A body that works"],
+  ["roots","Access to healthcare","Help you can reach"],
+  ["roots","Sensory comfort","Temperature, ergonomics, environment"],
+  ["roots","Movement and exercise","Using your body"],
+  ["roots","Sunlight","Light and the outdoors"],
+  ["roots","Freedom from pain","Relief when hurt"],
+  ["roots","Sexual needs / intimacy","Physical expression, erotic needs"],
+  ["trunk","Autonomy","Your own choices, shaping daily life"],
+  ["trunk","Independence","Functioning without relying on others"],
+  ["trunk","Authenticity","Alignment with your true self"],
+  ["trunk","Integrity","Acting in line with your values"],
+  ["trunk","Freedom","Personal agency without coercion"],
+  ["trunk","Self-expression","Voicing thoughts in safe outlets"],
+  ["trunk","Self-knowledge","Understanding your needs and motivations"],
+  ["trunk","Privacy","Space to be alone"],
+  ["trunk","Identity","A strong sense of who you are"],
+  ["trunk","Consent","Freedom to opt in or out"],
+  ["trunk","Identity affirmation","Your identity is seen and named correctly"],
+  ["trunk","Self-advocacy","Space to voice needs in work and care"],
+  ["trunk","Understanding","Sense of the world and oneself"],
+  ["trunk","Clarity","Mental ease from order and knowledge"],
+  ["trunk","Learning and growth","Exploring ideas, skills, perspectives"],
+  ["trunk","Challenge","Problem-solving, novelty"],
+  ["trunk","Creativity","Self-expression through making"],
+  ["trunk","Stimulation","Intellectual, emotional, excitement"],
+  ["trunk","Inspiration","Being moved or uplifted"],
+  ["trunk","Curiosity","Exploring for the joy of discovery"],
+  ["trunk","Meaning-making","Sense of narrative in life events"],
+  ["trunk","Structure","Routines, predictability, framework"],
+  ["trunk","Mastery","Developing skills and competence"],
+  ["branches","Emotional safety","Ability to express without judgment"],
+  ["branches","Recognition","Acknowledgment for your contribution"],
+  ["branches","Acceptance","Being accepted without needing to mask"],
+  ["branches","Validation","Feelings acknowledged and respected"],
+  ["branches","Affection","Touch, warmth, and care"],
+  ["branches","Support","Help when needed"],
+  ["branches","Companionship","Shared time with others"],
+  ["branches","Empathy","Being understood and resonated with"],
+  ["branches","Trust","Confidence and reliability in relationships"],
+  ["branches","Belonging","Being part of a community"],
+  ["branches","Mutuality","Balance of giving and receiving"],
+  ["branches","Connection","Meaningful, authentic relationships"],
+  ["branches","Intimacy","Deep, personal, vulnerable relationships"],
+  ["branches","Love","Giving, receiving, caring, warmth"],
+  ["branches","Compassion","Freedom from judgment and shame"],
+  ["branches","Peer community","People with shared experiences"],
+  ["branches","Freedom from ableism","Inclusive communities, safe from bias"],
+  ["branches","Mentorship","Guidance and inspiration"],
+  ["branches","Social flexibility","Options for different kinds of socializing"],
+  ["leaves","Play","Spontaneous, unstructured activities"],
+  ["leaves","Humor","Lightness, laughter, shared joy"],
+  ["leaves","Leisure","Free time for exploration and enjoyment"],
+  ["leaves","Relaxation","Time to decompress and reset"],
+  ["leaves","Fun","Joyful, exciting experiences"],
+  ["leaves","Beauty","Appreciation of art, aesthetics, nature"],
+  ["leaves","Adventure","Exploration of the unknown"],
+  ["leaves","Celebration","Honoring special moments"],
+  ["leaves","Playful creativity","Deep engagement and joy in creating"],
+  ["leaves","Production","Work, output, caretaking, expression"],
+  ["fruits","Purpose","Direction, mission, reasons for being"],
+  ["fruits","Contribution","Bringing value to others"],
+  ["fruits","Impact","Your actions affect the world"],
+  ["fruits","Growth","Developing skills, character, understanding"],
+  ["fruits","Fulfillment","Satisfaction from alignment with values"],
+  ["fruits","Service","Helping causes larger than oneself"],
+  ["fruits","Spirituality","Connecting to something greater"],
+  ["fruits","Gratitude","Appreciation for life"],
+  ["fruits","Transcendence","Awe, meaning, unity beyond self"]
+];
+
+/* Diagnostic — 15 statements, 3 per layer, context-aware */
+var DIAG_Q_SELF = [
+  {layer:"roots", text:"I'm tired in a way sleep doesn't fix."},
+  {layer:"roots", text:"My body gets whatever is left after everything else."},
+  {layer:"roots", text:"Home, money, or health feels shaky right now."},
+  {layer:"trunk", text:"I'm not sure what I actually want."},
+  {layer:"trunk", text:"I say yes when I mean no."},
+  {layer:"trunk", text:"I hide what I really think to keep the peace."},
+  {layer:"branches", text:"I feel lonely even around people."},
+  {layer:"branches", text:"No one close to me really gets what's going on with me."},
+  {layer:"branches", text:"I give more than I get back, and I'm keeping score."},
+  {layer:"leaves", text:"Resting feels like falling behind."},
+  {layer:"leaves", text:"I can't remember the last time I did something just for fun."},
+  {layer:"leaves", text:"I'm always doing, never just being."},
+  {layer:"fruits", text:"I'm going through the motions."},
+  {layer:"fruits", text:"Nothing I do feels like it matters to anyone."},
+  {layer:"fruits", text:"I don't know what I'm building toward."}
+];
+var DIAG_Q_BY_CONTEXT = {
+  self: DIAG_Q_SELF,
+  professional: [
+    {layer:"roots", text:"Work leaves me physically drained — I'm not sleeping, eating, or moving well."},
+    {layer:"roots", text:"My job feels unstable or unsafe — I don't know if I'll still be here in six months."},
+    {layer:"roots", text:"I can't switch off. Evenings and weekends don't feel like recovery."},
+    {layer:"trunk", text:"I've become my job title. I'm not sure who I am without the work."},
+    {layer:"trunk", text:"I say yes to everything because saying no feels dangerous here."},
+    {layer:"trunk", text:"I hide my real opinions in meetings to avoid being seen as difficult."},
+    {layer:"branches", text:"I feel alone at work, even in a team."},
+    {layer:"branches", text:"My contributions go unnoticed, and it's starting to make me bitter."},
+    {layer:"branches", text:"I give more to this team than I get back, and I'm running on fumes."},
+    {layer:"leaves", text:"I measure my worth by output. When I'm not producing, I feel worthless."},
+    {layer:"leaves", text:"I can't remember the last time work felt like play."},
+    {layer:"leaves", text:"I'm always 'on' — even rest feels like a performance."},
+    {layer:"fruits", text:"I don't know why I'm doing this anymore. The money isn't enough."},
+    {layer:"fruits", text:"My work doesn't contribute to anything I actually care about."},
+    {layer:"fruits", text:"I've lost the thread of what I'm building toward."}
+  ],
+  couple: [
+    {layer:"roots", text:"We're both so depleted there's nothing left for each other at the end of the day."},
+    {layer:"roots", text:"Money, housing, or health stress is making our home feel unstable."},
+    {layer:"roots", text:"We've stopped taking care of ourselves and it's showing in how we treat each other."},
+    {layer:"trunk", text:"I've lost myself in 'we'. I don't know what I want anymore."},
+    {layer:"trunk", text:"I can't say no to my partner without feeling like I'm abandoning them."},
+    {layer:"trunk", text:"I hide parts of who I am to keep the peace."},
+    {layer:"branches", text:"I feel lonely inside this relationship."},
+    {layer:"branches", text:"We talk about logistics, never about us."},
+    {layer:"branches", text:"I give more than I receive here, and I'm keeping score."},
+    {layer:"leaves", text:"We've stopped having fun together. Everything is duty."},
+    {layer:"leaves", text:"I can't rest around them — I'm always bracing for the next thing."},
+    {layer:"leaves", text:"We're partners in administration, not partners in life."},
+    {layer:"fruits", text:"I don't know what we're building together anymore."},
+    {layer:"fruits", text:"We've lost the shared sense of 'why'."},
+    {layer:"fruits", text:"I don't see myself growing in this relationship."}
+  ],
+  parent: [
+    {layer:"roots", text:"I'm so focused on my child's needs that I've stopped meeting my own."},
+    {layer:"roots", text:"Our home or routine feels chaotic — I can't get a stable footing."},
+    {layer:"roots", text:"I'm exhausted in a way that sleep doesn't fix."},
+    {layer:"trunk", text:"I've become 'mum' or 'dad' and lost the rest of who I am."},
+    {layer:"trunk", text:"I can't set a boundary with my child without feeling like a bad parent."},
+    {layer:"trunk", text:"I hide my own needs and feelings from my family."},
+    {layer:"branches", text:"I feel isolated — other parents don't seem to struggle the way I do."},
+    {layer:"branches", text:"I don't feel supported by my partner, my family, or my community."},
+    {layer:"branches", text:"I give endlessly and receive very little."},
+    {layer:"leaves", text:"I can't remember the last thing I did for myself."},
+    {layer:"leaves", text:"I feel like a machine that produces care."},
+    {layer:"leaves", text:"Rest feels impossible — there's always something."},
+    {layer:"fruits", text:"I'm so in the daily grind I've lost sight of the bigger picture."},
+    {layer:"fruits", text:"I don't feel like the parent I wanted to be."},
+    {layer:"fruits", text:"I can't connect to the meaning of this season."}
+  ],
+  team: [
+    {layer:"roots", text:"Our workload leaves no room for real recovery — for anyone on this team."},
+    {layer:"roots", text:"The team feels unstable — people are leaving, roles keep shifting."},
+    {layer:"roots", text:"We're always in crisis mode, never in a steady rhythm."},
+    {layer:"trunk", text:"We don't know what we stand for. Our identity shifts with every project."},
+    {layer:"trunk", text:"Nobody can say no here without it being punished."},
+    {layer:"trunk", text:"We present a version of ourselves that isn't true."},
+    {layer:"branches", text:"There's no real trust on this team — only politeness."},
+    {layer:"branches", text:"People don't feel seen or appreciated for their work."},
+    {layer:"branches", text:"A few people give most and get the least."},
+    {layer:"leaves", text:"We measure everything by output. Nobody's thriving — we're producing."},
+    {layer:"leaves", text:"We've lost the sense of play or creativity."},
+    {layer:"leaves", text:"Nobody rests. Rest is treated as weakness."},
+    {layer:"fruits", text:"We don't know why we're doing this — the mission has gone fuzzy."},
+    {layer:"fruits", text:"Our work doesn't contribute to anything we believe in anymore."},
+    {layer:"fruits", text:"We've stopped growing as individuals and as a group."}
+  ]
+};
+
+/* Contexts (from big block) */
+var CONTEXTS = [
+  {id:"self", icon:"O", title:"Just me", desc:"A full, personal map"},
+  {id:"professional", icon:"P", title:"Professional", desc:"Work, boundaries, burnout"},
+  {id:"couple", icon:"C", title:"A couple", desc:"Two trees, one shared space"},
+  {id:"parent", icon:"F", title:"Parent & child", desc:"Care, patience, capacity"},
+  {id:"team", icon:"T", title:"Working team", desc:"Shared conditions, shared output"}
+];
+
+/* Context-specific ordering of needs */
+var PRIORITY_BY_CONTEXT = {
+  self: null,
+  professional: {
+    roots:["Rest and sleep","Stability and consistency","Health","Nutritious food","Movement and exercise","Sensory comfort"],
+    trunk:["Autonomy","Self-advocacy","Identity","Integrity","Clarity","Self-knowledge","Structure","Freedom"],
+    branches:["Recognition","Trust","Support","Belonging","Mentorship","Companionship","Mutuality"],
+    leaves:["Relaxation","Play","Leisure","Beauty","Production","Celebration"],
+    fruits:["Purpose","Impact","Growth","Contribution","Fulfillment"]
+  },
+  couple: {
+    roots:["Rest and sleep","Stability and consistency","Health","Nutritious food","Physical safety"],
+    trunk:["Autonomy","Authenticity","Identity","Self-knowledge","Freedom","Consent","Self-expression","Privacy"],
+    branches:["Intimacy","Connection","Emotional safety","Mutuality","Trust","Compassion","Affection","Companionship","Love"],
+    leaves:["Play","Fun","Relaxation","Leisure","Celebration","Beauty"],
+    fruits:["Purpose","Growth","Meaning-making","Fulfillment","Transcendence"]
+  },
+  parent: {
+    roots:["Rest and sleep","Nutritious food","Health","Stability and consistency","Physical safety","Movement and exercise"],
+    trunk:["Autonomy","Identity","Consent","Self-knowledge","Self-advocacy","Privacy","Freedom","Self-expression"],
+    branches:["Support","Belonging","Peer community","Companionship","Emotional safety","Empathy","Mutuality"],
+    leaves:["Relaxation","Play","Leisure","Beauty","Production","Fun"],
+    fruits:["Purpose","Meaning-making","Growth","Fulfillment","Contribution"]
+  },
+  team: {
+    roots:["Rest and sleep","Stability and consistency","Physical safety","Sensory comfort","Movement and exercise"],
+    trunk:["Consent","Self-advocacy","Integrity","Clarity","Structure","Autonomy","Identity","Self-expression"],
+    branches:["Trust","Mutuality","Recognition","Belonging","Compassion","Emotional safety","Support","Empathy"],
+    leaves:["Play","Relaxation","Creativity","Celebration","Production","Leisure"],
+    fruits:["Purpose","Impact","Contribution","Growth","Service","Fulfillment"]
+  }
+};
+
+/* Layer info (from big block) */
+var LAYER_INFO = {
+  roots:{what:"Roots are the environment-dependent needs that make life livable: safety, rest, food, shelter, health, stability. They are not preferences — they are conditions. Without them the whole tree destabilizes.",solves:"When roots are satisfied, you have energy to show up, a body that doesn't fight you, and a baseline of safety from which you can make choices instead of reacting.",priority:"You cannot fix a starving root by producing more leaves. If roots are strained, no amount of rest, creativity, or accomplishment will hold. Fix the foundation first."},
+  trunk:{what:"The trunk is your internal structure: identity, autonomy, values, boundaries, self-knowledge. It's the backbone that lets you stand up without collapsing into what others want.",solves:"When the trunk is strong, you know what you want, you can say no without guilt, and your decisions come from who you are — not from pressure or fear.",priority:"A strained trunk makes every branch fragile. If you don't know who you are, relationships become negotiations about your worth. Stabilize the trunk before reaching outward."},
+  branches:{what:"Branches are how you reach outward: connection, belonging, trust, intimacy, support, being seen. They are the relational layer — the first point of contact with the world.",solves:"When branches are healthy, you feel met. You can ask for what you need, receive help, and be alone without feeling abandoned.",priority:"Branches can only hold what the trunk and roots support. If you're trying to fix loneliness with more contact, but your roots are exhausted, you'll keep burning out in the same relationships."},
+  leaves:{what:"Leaves are what you produce: work, creativity, caretaking, output, play. They are seasonal — they regenerate when the tree is healthy, and they die back when it isn't.",solves:"When leaves are healthy, you have energy to create, to play, to contribute without resentment. Rest actually restores you.",priority:"Treating leaves as roots causes collapse. If your output is the only thing holding your identity together, you are one bad season away from burnout. The leaves cannot feed the tree."},
+  fruits:{what:"Fruits are contribution, purpose, meaning, legacy. They appear naturally when conditions are right — they cannot be forced, and their absence is not failure.",solves:"When fruits are present, your life feels like it's about something. Your actions connect to something larger than the moment.",priority:"Fruits cannot grow on a starving tree. If you're chasing purpose while your roots and trunk are collapsing, you're asking a dying tree to bear fruit. Feed the lower layers first."}
+};
+
+/* Reframes: excuse / strategy / actions per need (subset here; fallback provided) */
+var REFRAME_BASE = {
+  "Rest and sleep":{excuse:"I'll rest when the work is done.",strategy:"Scrolling until 2am to 'unwind', then waking up exhausted.",actions:["Set a hard-stop alarm for work. Create a 20-minute wind-down with no screens.","Move bedtime 30 minutes earlier for one week. Just one week.","Leave your phone outside the bedroom tonight.","Take one nap this week, without apologising.","Block 9 hours in bed for three nights. No exceptions."]},
+  "Nutritious food":{excuse:"I don't have time to cook — I'll eat properly when things calm down.",strategy:"Skipping meals, then bingeing on whatever's fastest.",actions:["Batch-cook one thing on Sunday. Keep one no-decision meal ready.","Eat one meal this week without a screen. Sit down.","Buy one fruit you actually like. Put it where you'll see it.","Keep one emergency snack in your bag at all times.","Cook one meal this week where the only goal is that you enjoy it."]},
+  "Physical safety":{excuse:"It's not that bad — I'm probably overreacting.",strategy:"Staying in environments that keep you on edge, calling it strength.",actions:["Name one thing that would make your space feel safer. Do it this week.","Tell one person where you'll be when you go out.","Lock the door you always leave unlocked.","Walk a different route home. See if your shoulders drop.","Write down three times this month you felt unsafe."]},
+  "Stability and consistency":{excuse:"Life is chaotic — that's just how it is.",strategy:"Overplanning one area to compensate for chaos everywhere else.",actions:["Anchor three fixed points in your week. Protect them like appointments.","Same breakfast for a week.","Pick one day a week that looks the same.","Say no to one thing this week purely to protect your rhythm.","Take one thing off your plate this week."]},
+  "Autonomy":{excuse:"I have to do this — there's no other way.",strategy:"Procrastination, passive resistance, or asking permission for things you don't need permission for.",actions:["Make one small decision today without consulting anyone.","Change one thing about your routine that you've been doing 'because'.","Say 'I'll decide this myself' about one low-stakes thing.","Do one thing this week your way, even if it's slower.","Ask: whose voice is this rule in?"]},
+  "Authenticity":{excuse:"If I show them the real me, they'll leave.",strategy:"Code-switching until you don't know which version is real.",actions:["Share one true opinion with one safe person.","Wear something that feels like you, not the role.","Write one thing you believe that you never say out loud.","Say 'I actually think...' once this week.","Stop apologising for one thing you're not sorry about."]},
+  "Identity":{excuse:"I don't know who I am anymore — I've been everyone's everything.",strategy:"Filling every hour with roles so there's no space to notice the gap.",actions:["Write down three things you liked before you started performing.","Spend 20 minutes alone with no task.","List five things true about you that aren't your roles.","Do one thing no one in your life knows about.","Write 'I am someone who...' and finish it three ways."]},
+  "Consent":{excuse:"If I say no, they'll be upset with me.",strategy:"Saying yes, then resenting them silently.",actions:["Practice one small no this week.","Use 'Let me think about it' as your default response.","Say no to one thing today, no explanation.","Block 30 minutes nobody can book.","Write down the last time you said yes and wished you hadn't."]},
+  "Emotional safety":{excuse:"If I show how I really feel, I'll be too much.",strategy:"Shutting down, people-pleasing, or exploding after months of silence.",actions:["Write the feeling down. Then share one small piece with someone safe.","Name one feeling out loud today.","Tell someone 'I need a minute' before you shut down.","Share one vulnerable thing with someone you trust.","Leave one conversation without pretending to be fine."]},
+  "Validation":{excuse:"I shouldn't need validation — that's needy.",strategy:"Achieving more, hoping someone will finally notice.",actions:["Ask one person directly: 'I need to hear that this mattered.'","Tell someone about something you did this week.","Write down three things you're proud of. Read them out loud.","Ask for feedback on one specific thing.","Let a compliment land. Just say thank you."]},
+  "Belonging":{excuse:"I don't fit anywhere — I've tried.",strategy:"Staying in groups that don't fit rather than risking the search for ones that do.",actions:["Find one space tied to something you care about. Go once.","Reach out to one person who shares something specific.","Search for one group around a real interest.","Reconnect with one person who knew you before this season.","Go somewhere you'd feel like a regular by the third visit."]},
+  "Connection":{excuse:"Everyone's busy — I don't want to bother them.",strategy:"Waiting to be invited, then feeling forgotten.",actions:["Text one person you miss. Just 'I thought of you.'","Invite one person to something specific.","Call someone instead of texting.","Send a voice note.","Ask someone a real question. Not 'how are you'."]},
+  "Support":{excuse:"I should be able to handle this alone.",strategy:"Carrying everything until you collapse.",actions:["Ask for one specific thing from one specific person.","Tell someone 'I'm not okay' before it becomes a crisis.","Accept help when it's offered.","Name one thing you're carrying alone.","Ask someone to sit with you."]},
+  "Trust":{excuse:"People always let me down eventually.",strategy:"Testing people, then confirming the story when they fail.",actions:["Notice one moment someone kept their word.","Share one small thing and watch what they do.","Tell someone reliable that you noticed.","Risk one small vulnerability.","Stop testing. Ask directly."]},
+  "Play":{excuse:"I'll play when I've earned it.",strategy:"Scrolling, numbing, or calling rest 'play'.",actions:["Schedule 30 minutes of something with no purpose.","Do one thing with no productive outcome.","Play a game. A real one.","Make something ugly for fun.","Go somewhere just to look at it."]},
+  "Relaxation":{excuse:"I can't relax — there's too much to do.",strategy:"Staying busy as a way to avoid the feelings underneath.",actions:["Sit still for 10 minutes with nothing.","Do one non-productive thing for 30 minutes.","Take a bath, a walk, or a nap.","Put your phone in another room for an hour.","Lie down without a reason."]},
+  "Beauty":{excuse:"Beauty is a luxury — I don't have time.",strategy:"Living in environments that are purely functional.",actions:["Put one beautiful thing where you'll see it daily.","Look at something beautiful for two minutes.","Buy one flower.","Notice one beautiful thing and name it out loud.","Visit a place that makes you feel small and calm."]},
+  "Purpose":{excuse:"I'll find my purpose when I have more time/energy/money.",strategy:"Chasing productivity as a substitute for meaning.",actions:["Write down one moment in the last month that felt meaningful.","Ask: if nothing changed, what would I still want to do?","Write one sentence about what you want your life to be about.","Notice one thing this week that made you feel like you mattered.","Read about someone who inspired you. What was their why?"]},
+  "Contribution":{excuse:"What I do doesn't matter in the grand scheme.",strategy:"Withdrawing effort because it won't be seen.",actions:["Do one small thing for someone this week.","Give one thing away — time, money, attention.","Help one person with something specific.","Say thank you to someone who doesn't expect it.","Pick one thing you care about. Do one small thing."]},
+  "Impact":{excuse:"I'm just one person — it won't make a difference.",strategy:"Waiting for a big opportunity instead of a small one.",actions:["Name one thing you wish were different. Do one tiny thing.","Write to one person in power.","Sign one petition, donate to one cause, show up.","Tell one person about something you believe in.","Ask: what's the smallest action that would still count?"]},
+  "Meaning-making":{excuse:"There's no point trying to make sense of it.",strategy:"Numbing, avoiding, or intellectualizing instead of feeling.",actions:["Write the story of the last hard thing.","Ask: what did this teach me about what I need?","Tell someone the story of a hard thing.","Write what you'd tell your younger self.","Notice one thing that's changed for the better."]},
+  "Gratitude":{excuse:"I'll be grateful when things are better.",strategy:"Focusing on what's missing.",actions:["Name three specific things from today.","Tell someone what they've given you.","Write down one thing you'd miss if it disappeared.","Notice one small good thing. Say it out loud.","Thank someone for something small they did months ago."]},
+  "Freedom from pain":{excuse:"It's not that bad — I can push through.",strategy:"Ignoring the body until it forces you to stop.",actions:["Book one appointment or take one rest day.","Tell your body 'I hear you' and act on it.","Take the painkiller.","Rest today.","Name the pain."]},
+  "Movement and exercise":{excuse:"I'll start exercising when I have more energy.",strategy:"Sitting all day, then wondering why you feel heavy.",actions:["Walk for 10 minutes today. No goal.","Stretch for 5 minutes when you wake up.","Take the stairs once.","Dance to one song.","Move for 10 minutes without calling it exercise."]},
+  "Sunlight":{excuse:"I'll go outside when the weather's better.",strategy:"Living under artificial light.",actions:["Step outside for 5 minutes within an hour of waking.","Eat lunch outside or near a window.","Open all the curtains in one room.","Take one walk in daylight.","Sit by a window for 10 minutes."]},
+  "Companionship":{excuse:"Everyone's busy — I don't want to impose.",strategy:"Waiting to be included.",actions:["Reach out to one person today. Suggest a specific time.","Do something with someone this week.","Sit in a café with people around you for 30 minutes.","Invite someone over for tea.","Join one regular thing."]},
+  "Intimacy":{excuse:"We're too tired / busy / distant for that.",strategy:"Avoiding vulnerability because it feels risky.",actions:["Share one small vulnerable thing with your partner.","Ask one real question about their inner world.","Reach for their hand.","Tell them one thing you appreciate.","Ask what they need this week."]},
+  "Self-knowledge":{excuse:"I know myself well enough.",strategy:"Staying busy so there's no space to check.",actions:["Spend 10 minutes with a journal.","Notice one moment you felt most like yourself.","Write three things you need that you haven't said out loud.","Ask: what am I actually feeling right now?","Notice one thing you do that isn't really you."]},
+  "Structure":{excuse:"I work better under pressure.",strategy:"Living in reactive mode, then calling it flexibility.",actions:["Build one small routine this week.","Write down your day tomorrow.","Block one non-negotiable hour.","Give one recurring task a fixed time.","Simplify one system."]},
+  "Creativity":{excuse:"I'm not creative — that's for other people.",strategy:"Consuming others' creativity instead of making your own.",actions:["Make something badly this week.","Write 200 words. No editing.","Take one photo that means something.","Cook something without a recipe.","Draw for ten minutes. Badly."]},
+  "Learning and growth":{excuse:"I'll learn that when I have more time.",strategy:"Consuming content without applying it.",actions:["Pick one thing to learn. 15 minutes today.","Sign up for one thing this week.","Read one thing outside your job.","Ask one person about what they know.","Try one small new thing."]},
+  "Recognition":{excuse:"I shouldn't need praise — that's ego.",strategy:"Working harder, hoping it'll be noticed silently.",actions:["Ask for specific feedback.","Tell someone what you did.","Write three things you did well.","Ask your manager: What's landing?","Name one thing you're proud of. Out loud."]},
+  "Self-advocacy":{excuse:"If I speak up, I'll be seen as difficult.",strategy:"Swallowing it, then complaining elsewhere.",actions:["Name one thing you need at work. Once, plainly.","Ask for what you want instead of hinting.","Say 'I need' instead of 'I was wondering if'.","Practice the sentence out loud first.","Write what you'd say if you weren't afraid. Say one sentence of it."]},
+  "Integrity":{excuse:"I have to compromise my values — that's how it works here.",strategy:"Going along with things you don't believe in.",actions:["Name one value you won't compromise.","Write your top three values. Check your calendar.","Say no to one thing that violates a value.","Tell someone about one thing you believe in.","Notice one moment you felt off."]},
+  "Clarity":{excuse:"It's complicated — I'll figure it out eventually.",strategy:"Keeping everything vague.",actions:["Write down the three things you're deciding between.","Say the thing you're avoiding out loud.","Tell one person the truth about where you are.","Write the messy version.","Ask: what's the actual question here?"]},
+  "Freedom":{excuse:"I can't leave — it's not that simple.",strategy:"Staying in situations that make you smaller.",actions:["Name one small freedom you could reclaim.","Do one thing today you'd do if no one watched.","Take one afternoon and make no plans.","Say yes to one thing you'd say no to.","Say no to one thing you'd say yes to."]},
+  "Privacy":{excuse:"I don't need privacy — I'm an open book.",strategy:"Being constantly available.",actions:["Block 30 minutes with no availability.","Go somewhere alone this week.","Turn off notifications for one hour.","Keep one thing private.","Close the door for ten minutes."]},
+  "Affection":{excuse:"We're not really physical people.",strategy:"Going months without touch, then feeling distant.",actions:["Ask for one form of touch this week.","Hug someone for a full five seconds.","Sit close to someone.","Hold someone's hand.","Tell someone you love them. Not 'love you'."]},
+  "Compassion":{excuse:"I'm fine — I don't need softness.",strategy:"Harsh self-talk.",actions:["Say one kind thing to yourself tonight.","Rewrite one harsh thought as you'd say it to a friend.","Do one gentle thing for yourself.","Forgive yourself for one small thing.","Write one thing you did today that was enough."]},
+  "Peer community":{excuse:"Nobody else gets it.",strategy:"Isolating, then confirming no one understands.",actions:["Find one group where you don't have to explain.","Look for one online community.","Reach out to one person who gets it.","Join one thing where everyone's there for the same reason.","Ask one person: do you feel this too?"]},
+  "Fun":{excuse:"Fun is for kids.",strategy:"Filling all time with productive activity.",actions:["Do one thing this week because it's fun.","Laugh at something today.","Say yes to something silly.","Watch something that makes you laugh.","Do one thing you loved as a kid."]},
+  "Leisure":{excuse:"I'll have leisure when I've earned it.",strategy:"Filling every hour with something useful.",actions:["Block two hours this week with nothing.","Do one thing slowly.","Take an hour and don't produce anything.","Read for pleasure.","Take a walk with no destination."]},
+  "Celebration":{excuse:"It's not a big deal.",strategy:"Not marking anything.",actions:["Mark one small win this week. Out loud, with someone.","Tell someone about something you're proud of.","Acknowledge a milestone, even small.","Have a small treat. Not as a reward. As a marker.","Say 'I did that' about one thing today."]},
+  "Growth":{excuse:"I'm too old / busy / set in my ways.",strategy:"Staying in the same patterns.",actions:["Pick one skill. 15 minutes this week.","Read one thing that challenges you.","Try one small new thing.","Ask someone to teach you something.","Notice one thing you got better at recently."]},
+  "Fulfillment":{excuse:"This is just what life is.",strategy:"Achieving things that don't matter to you.",actions:["Write three moments recently you felt most alive.","Ask: what would I do if no one judged me?","Notice one thing that made you feel full.","Write one thing you'd like more of.","Compare your calendar to your values."]},
+  "Service":{excuse:"What could I possibly give?",strategy:"Waiting until you have more to give.",actions:["Do one small act of service.","Give someone your full attention for ten minutes.","Help one person with something specific.","Volunteer for something small.","Donate one thing you don't need."]},
+  "Spirituality":{excuse:"I'm not spiritual.",strategy:"Avoiding stillness.",actions:["Spend 10 minutes in silence or outside.","Sit with something bigger than you.","Notice one moment of awe. Write it down.","Ask one question you can't answer.","Light a candle or do one small ritual."]},
+  "Transcendence":{excuse:"I don't have time for awe.",strategy:"Screens, tasks, filling every gap.",actions:["Watch a sunset. Listen to music with full attention.","Sit outside at night and look up.","Listen to a whole song with your eyes closed.","Notice something that makes you feel small and calm.","Spend 10 minutes somewhere that moves you."]},
+  "Sexual needs / intimacy":{excuse:"It's not important — there are bigger things.",strategy:"Ignoring the need.",actions:["Name what you want. To yourself first.","Ask for one thing this week, gently.","Notice what your body wants and say it.","Spend time in your body without a goal.","Talk about desire without making it about response."]},
+  "Sensory comfort":{excuse:"I should be able to tolerate it.",strategy:"Staying in environments that overwhelm you.",actions:["Change one thing about your environment.","Wear the fabric that feels good.","Find one quiet corner.","Turn off one source of noise.","Adjust the light."]},
+  "Health":{excuse:"I'll deal with it when it's serious.",strategy:"Ignoring the body.",actions:["Book one check-up.","Notice one signal your body is giving you.","Drink water today.","Take your medication.","Rest when your body says rest."]},
+  "Access to healthcare":{excuse:"It's not urgent.",strategy:"Avoiding the system.",actions:["Make one call or booking.","Ask someone to help with one step.","Write down the one thing you've been avoiding. Do it.","Look up one clinic.","Ask a friend to come to one appointment."]},
+  "Access to shelter":{excuse:"I'll figure it out.",strategy:"Staying in situations that aren't sustainable.",actions:["Identify one resource that could help. Reach out.","Tell one person your situation.","Look up one service.","Ask one person for a temporary hand.","Write what you need. Pick one thing to ask for."]},
+  "Shelter":{excuse:"It's fine for now.",strategy:"Staying somewhere that doesn't feel like yours.",actions:["Name one thing that would make your space feel like home. Do it.","Clean one corner.","Put something on the wall that means something.","Arrange your space to fit your body.","Change one thing so it feels like yours."]},
+  "Freedom from ableism":{excuse:"I should just try harder.",strategy:"Masking until you collapse.",actions:["Name one accommodation you need. Ask once.","Tell one person what's actually hard.","Stop apologising for something you can't help.","Ask for one adjustment.","Find one community where you don't mask."]},
+  "Acceptance":{excuse:"If I change, they'll accept me.",strategy:"Becoming a version of yourself that fits.",actions:["Show one small unedited piece of yourself.","Say one thing you usually hide.","Notice one thing about you that you've been treating as wrong.","Tell one person one thing you usually soften.","Wear or say one thing that feels more like you."]},
+  "Empathy":{excuse:"Nobody really gets it.",strategy:"Explaining less, resenting more.",actions:["Tell one person what you're actually going through.","Ask someone to just listen, not fix.","Say the real thing. Even the messy version.","Tell one person the version you usually edit out.","Ask: can I tell you something hard?"]},
+  "Mutuality":{excuse:"I'll keep giving — it's fine.",strategy:"Keeping score silently.",actions:["In one relationship, ask for one thing.","Say yes to receiving something.","Let someone do something for you.","Name one thing you'd like them to take over.","Say 'I need help with this' once."]},
+  "Love":{excuse:"I don't need love — I need to get things done.",strategy:"Working, producing, avoiding softness.",actions:["Let yourself receive one kind gesture.","Tell one person you love them. Mean it.","Let someone hug you without pulling away.","Say thank you instead of 'you didn't have to'.","Notice one moment of love today."]},
+  "Challenge":{excuse:"I'll take on more when I'm ready.",strategy:"Avoiding difficulty.",actions:["Pick one thing that's slightly too hard. 20 minutes.","Sign up for one thing you're not sure you can do.","Do one hard thing badly. Finish it.","Ask for one project that stretches you.","Try something you're not good at yet."]},
+  "Stimulation":{excuse:"I'm bored — that's just life.",strategy:"Doomscrolling for stimulation.",actions:["Read or watch something that actually interests you.","Go somewhere new this week.","Ask someone about something they're passionate about.","Read something outside your usual interests.","Go see live music, a lecture, or a play."]},
+  "Inspiration":{excuse:"I don't have time to be inspired.",strategy:"Consuming content passively.",actions:["Return to one thing that once moved you.","Listen to a piece of music that means something.","Read something that reminds you what matters.","Watch someone doing something they love.","Ask: what used to move me?"]},
+  "Curiosity":{excuse:"I don't have room for rabbit holes.",strategy:"Staying in known territory.",actions:["Follow one curiosity for 15 minutes.","Google something you've wondered about.","Ask one question out loud that you don't know the answer to.","Read about one thing that fascinates you.","Take a different route home."]},
+  "Mastery":{excuse:"I'm already good enough at this.",strategy:"Staying at the same level.",actions:["Pick one thing to get better at. 20 minutes.","Ask someone better what they do differently.","Do one thing badly on purpose.","Track one thing you're improving at.","Do one rep of something. Just one."]},
+  "Independence":{excuse:"I can't do it alone.",strategy:"Waiting for someone else.",actions:["Do one thing entirely on your own.","Take one small action without asking.","Go somewhere alone. Just once.","Make one decision without consulting anyone.","Do one thing you usually outsource."]},
+  "Freedom from Responsibility":{excuse:"I can't take a break — everything falls apart.",strategy:"Pushing through, then burning out.",actions:["Take one afternoon off.","Say 'not today' to one thing.","Let something small go undone.","Hand one task over. Don't take it back.","Tell someone you need a break."]},
+  "Identity affirmation":{excuse:"It doesn't matter if they get it right.",strategy:"Letting it slide, then feeling invisible.",actions:["Correct one person gently this week.","Say your pronouns out loud.","Tell one person how you'd like to be referred to.","Write down the words that feel like you.","Notice when someone gets it right."]},
+  "Understanding":{excuse:"I don't really need to understand — I just need to cope.",strategy:"Staying confused.",actions:["Ask one clarifying question.","Write what you understand and what you don't.","Look up one thing you've been guessing about.","Ask someone to explain.","Write the messy version of what you think is happening."]}
+};
+function reframeFor(name){
+  if(REFRAME_BASE[name]) return REFRAME_BASE[name];
+  return {
+    excuse:"I'll deal with this when things calm down.",
+    strategy:"Pushing through and hoping it resolves itself.",
+    actions:["Name one small thing you could do this week. Just one.","Ask one person what they do when they need this.","Write down what this need looks like when it's met.","Take one tiny action today.","Notice one moment this week where this need was partially met."]
+  };
+}
+
+/* Needs-layer for emergency / tree state */
+function needsForLayer(layer){
+  var priority = PRIORITY_BY_CONTEXT[state.context] && PRIORITY_BY_CONTEXT[state.context][layer];
+  var rows = C.filter(function(n){return n[0]===layer});
+  if(!priority || priority.length===0) return rows;
+  var inPriority = [], rest = [];
+  rows.forEach(function(n){ if(priority.indexOf(n[1])>=0) inPriority.push(n); else rest.push(n); });
+  inPriority.sort(function(a,b){return priority.indexOf(a[1])-priority.indexOf(b[1])});
+  return inPriority.concat(rest);
+}
+function allCoreNeedsOrdered(){
+  if(!state.context || state.context==="self") return C.slice();
+  var out = [];
+  LORDER.forEach(function(layer){needsForLayer(layer).forEach(function(n){out.push(n)})});
+  return out;
+}
+
+/* Strategies for the Guess the Need game */
+var STRAT = [
+  ["I need you to text me back right now.","Validation"],
+  ["I'll just do it myself.","Support"],
+  ["I'm fine, it's nothing.","Authenticity"],
+  ["If I work harder, they'll finally notice.","Recognition"],
+  ["I'll go quiet until they figure it out.","Connection"],
+  ["They should just know.","Empathy"],
+  ["I can't say no to this.","Consent"],
+  ["I'll make myself indispensable so they can't leave.","Belonging"],
+  ["I'll agree to everything and resent them later.","Consent"],
+  ["I'll fix their problems so they need me.","Mutuality"],
+  ["I'll create a crisis so someone has to respond.","Attention"],
+  ["I'll compete with everyone to prove I matter.","Recognition"],
+  ["I'll stop resting until this is done.","Rest and sleep"],
+  ["I'll take control of every detail so nothing goes wrong.","Stability and consistency"],
+  ["I'll stay in this situation even though it hurts, because at least it's familiar.","Stability and consistency"]
+];
+
+/* Onboarding */
+var ONBOARD = [
+  {
+    icon:'<svg viewBox="0 0 120 120" class="onboard-icon"><circle cx="60" cy="60" r="52" fill="none" stroke="#5B8FB9" stroke-width="1.5" opacity=".3"/><path d="M30 45 Q60 25 90 45" stroke="#5B8FB9" stroke-width="2" fill="none" opacity=".6"/><path d="M30 60 Q60 40 90 60" stroke="#5B8FB9" stroke-width="2" fill="none" opacity=".75"/><path d="M30 75 Q60 55 90 75" stroke="#5B8FB9" stroke-width="2" fill="none" opacity=".9"/><path d="M60 20 L60 100" stroke="#1B2A38" stroke-width="2" stroke-dasharray="4 4" opacity=".5"/><circle cx="60" cy="100" r="4" fill="#B85C6B"/></svg>',
+    title:"Being a human is overwhelming.",
+    body:'Too many layers to hold at once. You feel lost, or lonely, or like work isn\u2019t quite right. You can\u2019t explain any of it to your partner. You don\u2019t know what to do next.<br><br>This is a map of what\u2019s actually starving \u2014 and what to feed first.<br><br><span style="font-size:.85rem;color:var(--mute);font-style:italic">A tool that works when you use it. Not therapy, not diagnosis.</span>'
+  },
+  {
+    icon:'<svg viewBox="0 0 120 120" class="onboard-icon"><path d="M60 105 L60 60" stroke="#6B7F94" stroke-width="4"/><path d="M60 60 C60 40 40 35 35 25" stroke="#5B8FB9" stroke-width="2" fill="none"/><path d="M60 60 C60 40 80 35 85 25" stroke="#5B8FB9" stroke-width="2" fill="none"/><path d="M60 80 C60 70 50 68 45 62" stroke="#4A9DB8" stroke-width="2" fill="none"/><path d="M60 80 C60 70 70 68 75 62" stroke="#4A9DB8" stroke-width="2" fill="none"/><circle cx="35" cy="22" r="6" fill="#7A6B9C"/><circle cx="85" cy="22" r="6" fill="#7A6B9C"/></svg>',
+    title:"Your needs are a tree, not a list.",
+    body:"Roots feed everything. The trunk holds you upright. Branches reach outward. Leaves are seasonal output. Fruits appear when the tree is healthy. When you know which layer is starving, the fix becomes obvious."
+  },
+  {
+    icon:'<svg viewBox="0 0 120 120" class="onboard-icon"><circle cx="60" cy="60" r="52" fill="none" stroke="#5B8FB9" stroke-width="1.5" opacity=".3"/><circle cx="60" cy="60" r="30" fill="none" stroke="#5B8FB9" stroke-width="1.5" opacity=".6"/><circle cx="60" cy="60" r="10" fill="#B85C6B"/><path d="M60 8 L60 20" stroke="#1B2A38" stroke-width="2"/><path d="M60 100 L60 112" stroke="#1B2A38" stroke-width="2"/><path d="M8 60 L20 60" stroke="#1B2A38" stroke-width="2"/><path d="M100 60 L112 60" stroke="#1B2A38" stroke-width="2"/></svg>',
+    title:"You don\u2019t have to decide what to focus on.",
+    body:"That\u2019s the part this app takes off your plate. Not by telling you what your needs are \u2014 you name those. But by ranking them, capping them at three, and refusing to let you hold all eighty at once.<br><br>Starving isn\u2019t just a state. It\u2019s an instruction: <em>feed this first.</em>"
+  },
+  {
+    icon:'<svg viewBox="0 0 120 120" class="onboard-icon"><circle cx="60" cy="60" r="50" fill="none" stroke="#5B8FB9" stroke-width="1.5" opacity=".3"/><text x="60" y="55" text-anchor="middle" font-family="Georgia,serif" font-size="28" fill="#5B8FB9">2 min</text><text x="60" y="78" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#5C7186">15 statements</text></svg>',
+    title:"Two minutes. A map of what\u2019s starving.",
+    body:"You\u2019ll answer 15 statements, see which layers are under strain, pick up to three emergencies across the whole tree, and leave with a reframed action plan \u2014 not a diagnosis, a vocabulary."
+  }
+];
+/* Dark needs (from big block) */
+var D = [
+  ["Control","Need to shape outcomes; masks fear of chaos","Micromanaging, ultimatums, threats","Clear routines and boundaries"],
+  ["Power","Desire for influence, leadership, dominance","Coercion, abuse, exploitation, aggression","Leading with fairness, speaking up, advocating your worth"],
+  ["Specialness","Need to feel exceptional, unique","Arrogance, entitlement, dismissing others","Pursuing mastery, celebrating growth, sharing to inspire"],
+  ["Attention","Need to be seen, admired, validated","Drama, exaggeration, creating crises","Asking to be listened to, sharing your story, seeking feedback"],
+  ["Revenge / Justice","Drive to restore fairness or retaliate","Vindictiveness, grudge-holding, sabotage","Setting boundaries, expressing pain, reclaiming your voice"],
+  ["Freedom from Responsibility","Desire to let go, avoid burdens","Avoiding tasks, expecting others to carry your load","Rest without guilt, delegating, saying no"],
+  ["Dependency","Need to rely on others","Codependency, helplessness, constant reassurance","Asking for support, being emotionally open, receiving help"],
+  ["Aggression / Anger","Need to push back, assert boundaries","Explosiveness, cruelty, passive aggression","Firmly telling others to stop, expressing anger safely"],
+  ["Destruction / Chaos","Need to tear down structures or be free","Sabotage, impulsivity, burning bridges","Letting go of the toxic, creatively breaking rules"],
+  ["Dark Curiosity","Exploration of taboo or morbid topics","Obsession with darkness, glamorizing pain","Reading true crime, shadow psychology, asking forbidden questions"],
+  ["Sexual Dominance","Erotic needs involving power dynamics","Coercion, manipulation, using sex for control","Exploring consensual dynamics safely, owning erotic identity"]
+];
+
+/* Learn articles (from big block) */
+var LEARN_ARTICLES = [
+  {id:"why-i-built-this", title:"Why I built this", topic:"Start here", layer:null, summary:"The moment that started it.", body:"[Your article goes here. — to be written]"},
+  {id:"need-vs-strategy", title:"Need vs strategy", topic:"The core idea", layer:null, summary:"The single distinction the whole app is built on.", body:"[Your article goes here. — to be written]"},
+  {id:"three-emergencies", title:"Why only three emergencies", topic:"The cap", layer:null, summary:"The rule that made one user laugh.", body:"[Your article goes here. — to be written]"},
+  {id:"roots-first", title:"Why roots come first", topic:"Roots", layer:"roots", summary:"You cannot fix a starving root with more leaves.", body:"[Your article goes here. — to be written]"},
+  {id:"identity-under-pressure", title:"Identity under pressure", topic:"Trunk", layer:"trunk", summary:"What happens when you've been everyone's everything.", body:"[Your article goes here. — to be written]"},
+  {id:"alone-in-a-crowd", title:"Alone in a crowd", topic:"Branches", layer:"branches", summary:"Why connection doesn't fix loneliness.", body:"[Your article goes here. — to be written]"},
+  {id:"output-is-not-rest", title:"Why output is not rest", topic:"Leaves", layer:"leaves", summary:"Burnout isn't about working too much.", body:"[Your article goes here. — to be written]"},
+  {id:"purpose-cant-be-forced", title:"Purpose can't be forced", topic:"Fruits", layer:"fruits", summary:"Fruits appear when conditions are right.", body:"[Your article goes here. — to be written]"}
+];
+var LEARN_PARTNERS = [
+  {name:"A therapist", for:"Branches", desc:"Slots reserved for licensed therapists.", tag:"Therapy"},
+  {name:"A coach", for:"Trunk", desc:"Slots reserved for coaches.", tag:"Coaching"},
+  {name:"An educator", for:"Leaves", desc:"Slots reserved for teachers and creators.", tag:"EdTech"}
+];
+/* ============================================================
+   DARK NEEDS — full page
+   ============================================================ */
+var CTRL=["Need 01","Control","The need to know what happens next.","The need to feel the ground won't shift under you. Predictability is what lets most people relax.",["You rewrite your team's work at night, then tell your partner you're exhausted because nobody else does it properly.","A friend suggests changing the restaurant and your stomach knots up. You sulk through the whole meal.","You check your partner's location or read their messages. It calms you for an hour, then you do it again.","You can't delegate, so you're the bottleneck at work and burned out at home.","Underneath sits a fear of being blamed or left with a mess."],["Make two columns: what I can change today, and what I can't. Act only on the first.","Give away one task with a clear brief and a deadline, then don't check until the deadline.","Build a weekly routine for structure, and keep one day with no plan on purpose.","When plans change, tell yourself &ldquo;I'm uncomfortable and I'll be okay&rdquo; and take three slow breaths before replying."],["What do you keep checking or redoing, and what do you think would happen if you stopped?","Which outcome are you actually afraid of right now?","What is one thing you could hand over this week without reviewing it afterwards?"]];
+var ATTN=["Need 04","Attention","The need to be seen.","The need for another person to register that you exist and care how you are. Most people were never taught to ask for it directly.",["You post something provocative and check the reactions every few minutes.","You tell a story with more drama than it deserves, because the flat version gets no response.","You go silent in a relationship, hoping your partner will notice and ask. When they don't, you feel abandoned.","At gatherings you either dominate the conversation or leave early feeling invisible."],["Say it plainly: &ldquo;I've had a rough week and I'd like twenty minutes of your attention.&rdquo;","Join something where being seen is the point: an improv class, a speaking group, an open mic.","Set a weekly call with a friend who asks real questions.","Ask for specific feedback at work instead of waiting for someone to mention it."],["When did you last want someone to notice you and say nothing?","What do you do when you feel ignored? Be specific.","Who could you ask for twenty minutes of full attention this week?"]];
+
+function darkCard(c){
+  var u = function(tag, arr){
+    var tagName = tag === "ol" ? "ol" : "ul";
+    return '<'+tagName+' style="padding-left:20px;margin-bottom:14px">'+arr.map(function(x){return '<li style="margin-bottom:8px;max-width:60ch">'+x+'</li>'}).join("")+'</'+tagName+'>';
+  };
+  return '<div class="results-detail" style="border:2px solid var(--moss)">'+
+    '<div class="k" style="color:var(--moss)">Free sample &middot; '+esc(c[0])+'</div>'+
+    '<h2>'+esc(c[1])+'</h2>'+
+    '<p class="m">'+esc(c[2])+'</p>'+
+    '<div class="k" style="margin-top:16px">What it is</div>'+
+    '<p>'+esc(c[3])+'</p>'+
+    '<div class="k">The shadow side</div>'+u('ul',c[4])+
+    '<div class="k">The integrated side</div>'+u('ul',c[5])+
+    '<div class="k">Ask yourself</div>'+u('ol',c[6])+
+  '</div>';
+}
+
+function renderDark(){
+  var c = document.getElementById('darkBody');
+  if(!c) return;
+  var UL = function(arr){return '<ul style="padding-left:20px;margin-bottom:10px">'+arr.map(function(x){return '<li style="margin-bottom:10px;max-width:60ch">'+x+'</li>'}).join("")+'</ul>'};
+  c.innerHTML =
+    '<div class="results-detail dk" style="background:#1B2A38;color:#E6EEF5;border-color:#1B2A38">'+
+      '<h1 style="font-size:1.8rem">The needs you were taught to hide.</h1>'+
+      '<p style="opacity:.9">Eleven cards for control, anger, attention, revenge, and the rest. They\'re not flaws. They\'re needs that went underground and came out sideways.</p>'+
+      '<div class="action-row left" style="margin-top:16px">'+
+        '<button class="btn btn-primary" style="background:#E7B3C9;color:#1B2A38" onclick="fakeDoorTap(\'dark\')">Get the Dark Needs PDF, $5</button>'+
+        '<button class="btn btn-outline" style="border-color:#E7B3C9;color:#E7B3C9" onclick="darkSampleScroll()">Try two cards free</button>'+
+      '</div>'+
+      '<p style="font-size:.78rem;opacity:.85;margin-top:14px">A reflection tool, not therapy. It won\'t diagnose you or replace professional help.</p>'+
+      '<div id="fakeDoorDark" style="max-width:400px;margin-top:14px"></div>'+
+    '</div>'+
+    '<div class="results-detail">'+
+      '<h2>Why people buy it</h2>'+
+      UL([
+        "<b>Relief from shame.</b> Nobody teaches you that wanting control, attention, or revenge is a need. You're told to stop. The deck says: the need is fine, the behavior is the problem.",
+        "<b>It names what you can't explain.</b> &ldquo;Why do I check their phone?&rdquo; becomes &ldquo;I need certainty, and I'm getting it the wrong way.&rdquo;",
+        "<b>It works in a bad moment.</b> One card, one question, one alternative. No 40-page book.",
+        "<b>It starts conversations.</b> Couples, coaches, and teams can hand over a card instead of starting a fight.",
+        "<b>Almost nobody touches these.</b> Everyone sells the positive needs. The uncomfortable ones are the ones people most want help with."
+      ])+
+    '</div>'+
+    '<div class="results-detail">'+
+      '<h2>The problem</h2>'+
+      '<p>You were told to stop being controlling. Nobody told you that control is a need, and that it\'s asking for something real.</p>'+
+      '<p>So it didn\'t go away. It turned into the silent treatment, the ultimatum, the phone check at midnight, the &ldquo;I\'m fine.&rdquo; Shame doesn\'t kill a need. It only changes how it shows up.</p>'+
+    '</div>'+
+    '<div class="results-detail">'+
+      '<h2>What it is</h2>'+
+      '<p>A deck of 11 cards. Each one names a need most people are embarrassed to admit, shows how it behaves when it\'s ignored, and gives you a version you can live with.</p>'+
+      '<p class="m">Control, Power, Specialness, Attention, Revenge and Justice, Freedom from Responsibility, Dependency, Anger, Chaos, Dark Curiosity, and Sexual Dominance. Every card has four parts: what the need is, how it shows up when ignored, what you can do about it, and questions to answer in writing.</p>'+
+    '</div>'+
+    '<div id="darkSample">'+darkCard(CTRL)+darkCard(ATTN)+'</div>'+
+    '<div class="results-detail">'+
+      '<h2>How people use it</h2>'+
+      UL([
+        "<b>Alone.</b> Pick the card that stings after a rough day. Read it, then write your answers to its questions.",
+        "<b>With a partner.</b> Hand over a card instead of explaining. &ldquo;This one's me tonight.&rdquo;",
+        "<b>With a coach or therapist.</b> A fast way into topics clients circle for weeks.",
+        "<b>With a team.</b> Name what's driving the behavior before it becomes a conflict."
+      ])+
+    '</div>'+
+    '<div class="results-detail">'+
+      '<h2>Why it\'s different</h2>'+
+      UL([
+        "It's not a personality test. It doesn't put you in a type.",
+        "It doesn't tell you to think positive.",
+        "It doesn't call you broken.",
+        "It works on its own, and it plugs into your Needs Tree if you use it."
+      ])+
+    '</div>'+
+    '<div class="results-detail">'+
+      '<h2>Questions</h2>'+
+      '<p><b>Is this therapy?</b><br>No. It\'s a reflection tool. It won\'t diagnose you or replace professional help.</p>'+
+      '<p><b>Is it edgy?</b><br>It\'s honest. Nothing here is shocking, but some of it is uncomfortable.</p>'+
+      '<p><b>Is every card for everyone?</b><br>The Sexual Dominance card is for adults only, and you can skip it.</p>'+
+      '<p><b>What format is it?</b><br>A PDF, for now. A printed deck is coming next year.</p>'+
+      '<p><b>Can I try it first?</b><br>Yes. Two full cards are free to read above.</p>'+
+    '</div>'+
+    '<div class="results-detail dk" style="background:#1B2A38;color:#E6EEF5;border-color:#1B2A38">'+
+      '<h2>You\'ve been ashamed of these needs for years. You really don\'t have to.</h2>'+
+      '<div class="action-row left" style="margin-top:12px">'+
+        '<button class="btn btn-primary" style="background:#E7B3C9;color:#1B2A38" onclick="fakeDoorTap(\'dark\')">Get the Dark Needs PDF, $5</button>'+
+        '<button class="btn btn-outline" style="border-color:#E7B3C9;color:#E7B3C9" onclick="darkPrintWaitlist()">I want a printed deck</button>'+
+      '</div>'+
+      '<p style="font-size:.78rem;opacity:.85;margin-top:14px">A reflection tool, not therapy. It won\'t diagnose you or replace professional help.</p>'+
+    '</div>';
+}
+function darkSampleScroll(){
+  var el = document.getElementById('darkSample');
+  if(el) el.scrollIntoView({behavior:"smooth"});
+}
+function darkPrintWaitlist(){
+  alert("Printed deck signups open soon. We'll let you know.");
+}
+window.renderDark = renderDark;
+window.darkSampleScroll = darkSampleScroll;
+window.darkPrintWaitlist = darkPrintWaitlist;
+/* ============================================================
+   STATE
+   ============================================================ */
+var state = {
+  onboardStep:0,
+  context:null,
+  diagAnswers:new Array(15).fill(null),
+  diagCurrent:0,
+  diagScores:null,
+  diagStrained:null,
+  focusLayer:null,
+  emergencyPicks:{roots:[],trunk:[],branches:[],leaves:[],fruits:[]},
+  nonNegotiables:{roots:[],trunk:[],branches:[],leaves:[],fruits:[]},
+  chosenActions:{},
+  customActions:{},
+  actionIndex:{},
+  ifThenCue:{},
+  ifThenAction:{},
+  treeNeeds:{roots:[],trunk:[],branches:[],leaves:[],fruits:[]},
+  journal:[],
+  hist:[],
+  darkWaitlist:[],
+  fakeDoors:{save:0, dark:0},
+  play:{ view:"menu", scope:null, subScope:null, cards:[], sorted:{}, currentIdx:0, sayItCard:null, sayItRound:1, strategyRound:[], strategyIdx:0 }
+};
+
+var STORAGE_KEY = "needsTree.v2";
+var saveTimer = null;
+function saveState(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    try{
+      var snapshot = {
+        context: state.context, diagAnswers: state.diagAnswers, diagCurrent: state.diagCurrent,
+        diagScores: state.diagScores, diagStrained: state.diagStrained, focusLayer: state.focusLayer,
+        emergencyPicks: state.emergencyPicks, nonNegotiables: state.nonNegotiables,
+        chosenActions: state.chosenActions, customActions: state.customActions,
+        actionIndex: state.actionIndex, ifThenCue: state.ifThenCue, ifThenAction: state.ifThenAction,
+        treeNeeds: state.treeNeeds, journal: state.journal, hist: state.hist,
+        darkWaitlist: state.darkWaitlist, fakeDoors: state.fakeDoors,
+        onboardStep: state.onboardStep
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    }catch(e){}
+  }, 300);
+}
+function loadState(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    var s = JSON.parse(raw);
+    Object.keys(s).forEach(function(k){ if(k in state) state[k] = s[k]; });
+    // initialize if-then / action maps if missing
+    state.ifThenCue = state.ifThenCue || {};
+    state.ifThenAction = state.ifThenAction || {};
+    state.chosenActions = state.chosenActions || {};
+    state.customActions = state.customActions || {};
+    state.actionIndex = state.actionIndex || {};
+    state.fakeDoors = state.fakeDoors || {save:0, dark:0};
+    state.hist = state.hist || [];
+    if(typeof state.onboardStep !== "number" || state.onboardStep < 0 || state.onboardStep > 10){
+      state.onboardStep = 0;
+    }
+  }catch(e){}
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function $(s){return document.querySelector(s)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function scoreStatus(s){if(s<=3)return "healthy";if(s<=7)return "moderate";return "strained"}
+function isEmergency(layer, name){return state.emergencyPicks[layer] && state.emergencyPicks[layer].indexOf(name)>=0}
+function shuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t}return b}
+function today(){return new Date().toISOString().slice(0,10)}
+function currentQuestions(){return DIAG_Q_BY_CONTEXT[state.context] || DIAG_Q_SELF}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function navigateTo(page){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var el=document.getElementById('page-'+page);
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.toggle('active',n.dataset.page===page)});
+  var sb=document.getElementById('sidebar');if(sb)sb.classList.remove('open');
+  window.scrollTo(0,0);
+  if(page==='today')renderToday();
+  if(page==='diagnostic')renderDiagnostic();
+  if(page==='dark')renderDark();
+  if(page==='play')renderPlay();
+  if(page==='learn')renderLearn();
+  if(page==='tree')renderTreeMap();
+  if(page==='journal')renderJournal();
+  if(page==='landing')renderLanding();
+}
+window.navigateTo=navigateTo;
+document.querySelectorAll('.nav-item').forEach(function(n){n.addEventListener('click',function(){navigateTo(n.dataset.page)})});
+document.getElementById('menuBtn').addEventListener('click',function(){document.getElementById('sidebar').classList.toggle('open')});
+
+/* ============================================================
+   LANDING
+   ============================================================ */
+function renderLanding(){
+  var c = document.getElementById('landingContent');
+  if(!c) return;
+  var bars = [
+    {name:"Fruits",   score:"5/12", state:"strain",  color:"#7A6B9C", pct:42},
+    {name:"Leaves",   score:"6/12", state:"strain",  color:"#7BA8C4", pct:50},
+    {name:"Branches", score:"7/12", state:"strain",  color:"#4A9DB8", pct:58},
+    {name:"Trunk",    score:"3/12", state:"healthy", color:"#5B8FB9", pct:25},
+    {name:"Roots",    score:"10/12", state:"strained", color:"#B85C6B", pct:83}
+  ];
+  var barsHtml = bars.map(function(b){
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)">'+
+      '<div style="font-family:var(--font-display);font-weight:700;font-size:.92rem;flex:0 0 80px;color:'+b.color+'">'+b.name+'</div>'+
+      '<div style="flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden"><div style="width:'+b.pct+'%;height:100%;background:'+b.color+';border-radius:4px"></div></div>'+
+      '<div style="font-size:.78rem;color:var(--mute);flex:0 0 auto;min-width:90px;text-align:right">'+b.score+' · '+b.state+'</div>'+
+    '</div>';
+  }).join("");
+
+  var whoCards = [
+    {tag:"JUST ME", title:"Everything looks fine. So why don't you feel fine?", quotes:['"I\'m tired in a way sleep doesn\'t fix."','"I\'m not sure what I actually want."','"I feel lonely even around people."'], body:"You can't point to a problem, so you can't ask for help, and you can't explain it to the person next to you."},
+    {tag:"WORK", title:"You're good at your job. It's costing more than it pays.", quotes:['"I\'ve become my job title."','"I say yes to everything because saying no feels dangerous here."','"My contributions go unnoticed, and it\'s starting to make me bitter."'], body:"Burnout isn't only too much work. It's recovery, recognition, a voice and a reason — and one of them stopped being met."},
+    {tag:"COUPLE", title:"You love them. You still can't say what's missing.", quotes:['"I feel lonely inside this relationship."','"We talk about logistics, never about us."','"I give more than I receive here, and I\'m keeping score."'], body:"A need with no name comes out as distance, irritation or silence. With the words, \"you never listen\" becomes \"I need to be understood.\""}
+  ];
+  var whoHtml = whoCards.map(function(w){
+    return '<div class="results-detail" style="margin-bottom:16px">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:6px">'+w.tag+'</div>'+
+      '<h3 style="font-family:var(--font-display);font-size:1.1rem;margin-bottom:10px">'+esc(w.title)+'</h3>'+
+      w.quotes.map(function(q){return '<p style="font-style:italic;font-size:.9rem;color:var(--mute);margin-bottom:6px;padding-left:12px;border-left:2px solid var(--line)">'+esc(q)+'</p>'}).join("")+
+      '<p style="font-size:.9rem;color:var(--mute);margin-top:10px;margin-bottom:0">'+esc(w.body)+'</p>'+
+    '</div>';
+  }).join("");
+
+  var steps = [
+    {n:"1", title:"Answer 15 statements", body:"Three per layer, like \u201cI'm tired in a way sleep doesn't fix.\u201d Rate each from Not me to Very me."},
+    {n:"2", title:"See which layer is starving", body:"Your tree is read from the roots up, so you see what to feed first and what can wait."},
+    {n:"3", title:"Pick up to three, plan the moment", body:"One small action for each, tied to a cue in your day. It shows up on Today so you see it again tomorrow."}
+  ];
+  var stepsHtml = steps.map(function(s){
+    return '<div style="display:flex;gap:16px;margin-bottom:22px">'+
+      '<div style="flex:0 0 40px;height:40px;border-radius:50%;background:var(--ink);color:var(--bg);font-family:var(--font-display);font-weight:700;font-size:1.05rem;display:flex;align-items:center;justify-content:center">'+s.n+'</div>'+
+      '<div><div style="font-family:var(--font-display);font-weight:700;font-size:1.02rem;margin-bottom:4px">'+esc(s.title)+'</div>'+
+      '<div style="font-size:.9rem;color:var(--mute);line-height:1.55">'+esc(s.body)+'</div></div>'+
+    '</div>';
+  }).join("");
+
+  var six = [
+    ["A map of five layers","Roots, trunk, branches, leaves and fruits, each scored 0–12 and marked healthy, under strain or strained."],
+    ["Your three emergencies","Pick what is starving right now from 75 named needs. The cap is three, across the whole tree. The squeeze is the point."],
+    ["The pattern behind each one","The excuse you tell yourself, what you do instead, and a small action that flips it. Five suggestions per need, or write your own."],
+    ["An if-then plan","\u201cIf it's 6pm and I'm still working, then I'll close my laptop and walk for 10 minutes.\u201d A specific moment beats a vague intention."],
+    ["A Today page","Your strained layers, your plans and your non-negotiables in one place, plus how your tree changed since the last time you checked."],
+    ["Words for it","Names for what you need, so \u201csomething's off\u201d becomes a sentence you can say to the person lying next to you."]
+  ];
+  var sixHtml = six.map(function(s, i){
+    return '<div style="display:flex;gap:14px;margin-bottom:20px">'+
+      '<div style="flex:0 0 32px;height:32px;border-radius:50%;background:var(--card);border:1.5px solid var(--line);color:var(--moss);font-family:var(--font-display);font-weight:700;font-size:.95rem;display:flex;align-items:center;justify-content:center">'+(i+1)+'</div>'+
+      '<div><div style="font-family:var(--font-display);font-weight:700;font-size:1rem;margin-bottom:4px">'+esc(s[0])+'</div>'+
+      '<div style="font-size:.9rem;color:var(--mute);line-height:1.55">'+esc(s[1])+'</div></div>'+
+    '</div>';
+  }).join("");
+
+  var layers = [
+    {name:"Fruits", sub:"meaning, contribution", line:"Purpose can't be forced. It shows up when the layers below are fed.", color:"#7A6B9C"},
+    {name:"Leaves", sub:"play, rest, output", line:"Output can't hold you up. If worth rides on producing, one bad season breaks it.", color:"#7BA8C4"},
+    {name:"Branches", sub:"being seen, held, connected", line:"Loneliness often needs more of you shown to the people you have.", color:"#4A9DB8"},
+    {name:"Trunk", sub:"who you are, what you choose", line:"Without a clear sense of what you want, every relationship becomes a negotiation about your worth.", color:"#5B8FB9"},
+    {name:"Roots", sub:"rest, safety, your body", line:"Nothing above works well on an empty tank.", color:"#6B7F94"}
+  ];
+  var layersHtml = layers.map(function(l){
+    return '<div style="padding:14px 16px;border-left:4px solid '+l.color+';background:var(--card);border-radius:var(--radius-sm);margin-bottom:10px">'+
+      '<div style="font-family:var(--font-display);font-weight:700;font-size:1rem;color:'+l.color+';margin-bottom:2px">'+l.name+' <span style="font-weight:400;font-size:.85rem;color:var(--mute)">· '+l.sub+'</span></div>'+
+      '<div style="font-size:.9rem;color:var(--mute);line-height:1.55">'+esc(l.line)+'</div>'+
+    '</div>';
+  }).reverse().join("");
+
+  c.innerHTML =
+    // HERO
+    '<div style="max-width:720px;margin:0 auto;padding:32px 0 40px;text-align:center">'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--moss);margin-bottom:14px">5/12 · strain</div>'+
+      '<h1 style="font-size:clamp(2rem,1.4rem+2.4vw,2.9rem);line-height:1.15;margin-bottom:18px;max-width:14ch;margin-left:auto;margin-right:auto">Find out which part of your life is starving.</h1>'+
+      '<p style="font-size:1.08rem;color:var(--mute);line-height:1.65;max-width:44ch;margin:0 auto 28px">Answer 15 statements. Get a map of your needs, one small action for each thing that\'s starving, and the moment in your day you\'ll actually do it.</p>'+
+      '<button class="btn btn-primary" style="padding:16px 28px;font-size:1rem" onclick="startFromLanding()">Start the 15 statements</button>'+
+      '<p style="font-size:.82rem;color:var(--mute);margin-top:14px">No account. Your answers stay on your device.</p>'+
+    '</div>'+
+
+    // SAMPLE TREE
+    '<div class="results-detail" style="max-width:640px;margin:0 auto 40px">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-bottom:14px">Sample result · your tree, this season</div>'+
+      barsHtml+
+      '<p style="font-size:.88rem;color:var(--mute);margin-top:14px;margin-bottom:0"><strong style="color:var(--ink)">Start here:</strong> your roots. Rest, safety and your body come before everything above them.</p>'+
+    '</div>'+
+
+    // WHAT YOU GET
+    '<div style="max-width:640px;margin:0 auto 40px">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:10px">What you get</div>'+
+      '<h2 style="font-size:1.5rem;line-height:1.25;margin-bottom:24px">Not advice. A clear answer to \u201cwhat do I pay attention to first?\u201d</h2>'+
+      '<p style="font-size:.95rem;color:var(--mute);margin-bottom:24px">In about two minutes you leave with six concrete things.</p>'+
+      sixHtml+
+    '</div>'+
+
+    // WHAT A NEED LOOKS LIKE
+    '<div class="results-detail" style="max-width:640px;margin:0 auto 40px">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--c-strained);margin-bottom:8px">Emergency · Roots</div>'+
+      '<h2 style="font-size:1.4rem;margin-bottom:20px">Rest and sleep</h2>'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:6px">The excuse</div>'+
+      '<div style="font-style:italic;font-size:1rem;padding:12px 14px;border-left:3px solid var(--hot);background:var(--bg);border-radius:var(--radius-xs);margin-bottom:18px">\u201cI\'ll rest when the work is done.\u201d</div>'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:6px">What you do instead</div>'+
+      '<div style="font-size:.95rem;padding:12px 14px;border-left:3px solid var(--c-moderate);background:var(--bg);border-radius:var(--radius-xs);margin-bottom:18px">Scrolling until 2am to \u201cunwind\u201d, then waking up exhausted.</div>'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:6px">Flip it</div>'+
+      '<div style="font-size:.95rem;padding:12px 14px;border-left:3px solid var(--c-healthy);background:var(--bg);border-radius:var(--radius-xs);margin-bottom:18px">Leave your phone outside the bedroom tonight.</div>'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:6px">Your if-then plan</div>'+
+      '<div style="font-size:.95rem;font-style:italic;padding:12px 14px;background:rgba(91,143,185,.08);border-radius:var(--radius-xs)">If I brush my teeth, then I will put my phone on the hallway shelf.</div>'+
+    '</div>'+
+
+    // HOW IT WORKS
+    '<div style="max-width:640px;margin:0 auto 40px">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:10px">How it works</div>'+
+      '<h2 style="font-size:1.5rem;line-height:1.25;margin-bottom:24px">Three steps. That\'s the whole thing.</h2>'+
+      stepsHtml+
+    '</div>'+
+
+    // WHO IT'S FOR
+    '<div style="max-width:640px;margin:0 auto 40px">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:10px">When it helps</div>'+
+      '<h2 style="font-size:1.5rem;line-height:1.25;margin-bottom:24px">You\'re not imagining it. You just don\'t have the words yet.</h2>'+
+      '<p style="font-size:.95rem;color:var(--mute);margin-bottom:24px">Something is unmet, and nobody taught you to read it. Pick who\'s taking it, and the 15 statements are rewritten in that voice.</p>'+
+      whoHtml+
+      '<p style="font-size:.88rem;color:var(--mute);margin-top:12px"><strong style="color:var(--ink)">Parent or team lead?</strong> There are versions for you too. For parents: \u201cI\'ve stopped meeting my own needs.\u201d For teams: \u201cpeople don\'t feel seen or appreciated for their work.\u201d</p>'+
+      '<p style="font-size:.88rem;color:var(--mute);margin-top:12px"><strong style="color:var(--ink)">Not a fit if</strong> you\'re in crisis or want a diagnosis. This is a reflection tool, not therapy. If you need support now, please reach out to a professional.</p>'+
+    '</div>'+
+
+    // THE TREE
+    '<div style="max-width:640px;margin:0 auto 40px">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:10px">Why it works</div>'+
+      '<h2 style="font-size:1.5rem;line-height:1.25;margin-bottom:18px">Needs aren\'t a flat list. They\'re layered, like a tree.</h2>'+
+      '<p style="font-size:.95rem;color:var(--mute);line-height:1.65;margin-bottom:14px">Most self-help says pick whichever need sounds good: rest, connection, purpose. But the layers depend on each other. Roots feed everything, and fruit comes last, if it comes at all.</p>'+
+      '<p style="font-size:.95rem;color:var(--mute);line-height:1.65;margin-bottom:24px">Once you know which layer is starving, the order gets clearer. You stop trying to fix loneliness with more contact when you need sleep. You stop chasing purpose while your body is struggling. The question changes from <em>what\'s wrong with me?</em> to <em>what do I feed first?</em></p>'+
+      layersHtml+
+    '</div>'+
+
+    // ALSO INSIDE
+    '<div class="results-detail" style="max-width:640px;margin:0 auto 40px">'+
+      '<h2 style="font-size:1.3rem;margin-bottom:16px">Also inside</h2>'+
+      '<p style="font-size:.95rem;color:var(--mute);margin-bottom:6px"><strong style="color:var(--ink)">Free, and it stays free.</strong> The diagnostic, your tree, the games, your if-then plans and your journal. That\'s not a demo. It\'s the product.</p>'+
+      '<p style="font-size:.95rem;color:var(--mute);margin-bottom:6px"><strong style="color:var(--ink)">Three games.</strong> Sort it (solo), Say it out loud (with someone), and Guess the need. Short ways to learn your own patterns.</p>'+
+      '<p style="font-size:.95rem;color:var(--mute);margin-bottom:6px"><strong style="color:var(--ink)">A journal.</strong> One prompt, built from your own emergency. One sentence is enough.</p>'+
+      '<p style="font-size:.95rem;color:var(--mute);margin-bottom:0"><strong style="color:var(--ink)">My Tree.</strong> Add what\'s missing, mark emergencies, and open any need to see its strategies.</p>'+
+    '</div>'+
+
+    // DARK NEEDS TEASER
+    '<div class="results-detail dk" style="max-width:640px;margin:0 auto 40px;background:#1B2A38;color:#E6EEF5;border-color:#1B2A38">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#E7B3C9;margin-bottom:8px">Coming soon · Dark Needs deck</div>'+
+      '<h2 style="font-size:1.3rem;margin-bottom:12px;color:#E6EEF5">The needs you were taught to hide.</h2>'+
+      '<p style="font-size:.95rem;opacity:.9;line-height:1.6;margin-bottom:18px">Control, anger, attention, revenge. They\'re not flaws. They\'re needs that went underground and came out sideways. Eleven cards that name each one, show how it behaves when ignored, and give you a version you can live with.</p>'+
+      '<button class="btn btn-outline btn-small" style="border-color:#E7B3C9;color:#E7B3C9" onclick="startFromLanding();navigateTo(\'dark\')">See the Dark Needs deck \u2192</button>'+
+    '</div>'+
+
+    // CLOSING CTA
+    '<div style="max-width:640px;margin:0 auto 24px;padding:36px 24px;text-align:center;background:var(--card);border:2px solid var(--moss);border-radius:var(--radius)">'+
+      '<h2 style="font-size:1.6rem;line-height:1.25;margin-bottom:10px">Stop collecting advice. Find out what to feed first.</h2>'+
+      '<p style="font-size:1rem;color:var(--mute);margin-bottom:22px">15 statements. Two minutes. Free.</p>'+
+      '<button class="btn btn-primary" style="padding:16px 28px;font-size:1rem" onclick="startFromLanding()">Start the 15 statements</button>'+
+      '<p style="font-size:.78rem;color:var(--mute);margin-top:16px;margin-bottom:0">A reflection tool, not therapy or diagnosis.</p>'+
+    '</div>';
+}
+
+function startFromLanding(){
+  navigateTo('onboarding');
+}
+
+window.renderLanding = renderLanding;
+window.startFromLanding = startFromLanding;
+  
+/* ============================================================
+   ONBOARDING
+   ============================================================ */
+function renderOnboarding(){
+  if(typeof state.onboardStep !== "number" || state.onboardStep < 0 || state.onboardStep >= ONBOARD.length){
+    state.onboardStep = 0;
+  }
+  var s = ONBOARD[state.onboardStep];
+  var c = document.getElementById('onboardingContent');
+  if(!c || !s){ return; }
+  c.innerHTML='<div class="step-indicator">'+ONBOARD.map(function(_,i){return '<div class="step-dot'+(i===state.onboardStep?' active':'')+'"></div>'}).join("")+'</div>'+s.icon+'<h1>'+s.title+'</h1><p>'+s.body+'</p><button class="btn btn-primary" id="onboardNext">'+(state.onboardStep<ONBOARD.length-1?'Continue':'Choose who is taking this')+'</button>'+(state.onboardStep>0?'<button class="btn btn-ghost" id="onboardBack">Back</button>':'');
+  document.getElementById('onboardNext').onclick=function(){
+    if(state.onboardStep<ONBOARD.length-1){state.onboardStep++;saveState();renderOnboarding()}
+    else{state.onboardStep=0;saveState();navigateTo('context')}
+  };
+  var back=document.getElementById('onboardBack');
+  if(back)back.onclick=function(){state.onboardStep--;saveState();renderOnboarding()};
+}
+/* ============================================================
+   CONTEXT
+   ============================================================ */
+function renderContext(){
+  var g=document.getElementById('contextGrid');
+  g.innerHTML=CONTEXTS.map(function(c){return '<div class="context-card" data-id="'+c.id+'"><div class="cc-icon">'+c.icon+'</div><div class="cc-title">'+c.title+'</div><div class="cc-desc">'+c.desc+'</div></div>'}).join("");
+  g.querySelectorAll('.context-card').forEach(function(el){
+    el.onclick=function(){
+      state.context=el.dataset.id;
+      state.diagCurrent=0;
+      state.diagAnswers=new Array(15).fill(null);
+      state.diagScores=null;state.diagStrained=null;state.focusLayer=null;
+      state.emergencyPicks={roots:[],trunk:[],branches:[],leaves:[],fruits:[]};
+      state.nonNegotiables={roots:[],trunk:[],branches:[],leaves:[],fruits:[]};
+      state.chosenActions={};state.customActions={};state.actionIndex={};
+      state.ifThenCue={};state.ifThenAction={};
+      saveState();
+      navigateTo('diagnostic');
+    };
+  });
+}
+
+/* ============================================================
+   DIAGNOSTIC (check-in) — small file's 15 q's + big block's context logic
+   ============================================================ */
+function renderDiagnostic(){
+  if(state.diagScores){renderResults();return}
+  renderDiagQuestion();
+}
+function renderDiagQuestion(){
+  var qs=currentQuestions();
+  var c=document.getElementById('diagContent');
+  if(state.diagCurrent>=qs.length){computeDiagResult();renderResults();return}
+  var q=qs[state.diagCurrent];
+  var pct=(state.diagCurrent/qs.length)*100;
+  var labels=["Not me","Rarely","Sometimes","Often","Very me"];
+  c.innerHTML='<div class="today-hero"><h1>Which layer is starving?</h1><p>'+qs.length+' statements. Two minutes.</p></div><div class="diag-progress"><div class="diag-bar" style="width:'+pct+'%"></div></div><div class="diag-q"><div class="q-layer">'+L[q.layer]+'</div><div class="q-num">Statement '+(state.diagCurrent+1)+' of '+qs.length+'</div><div class="q-text">'+esc(q.text)+'</div><div class="diag-scale">'+[0,1,2,3,4].map(function(v){return '<button data-val="'+v+'" class="'+(state.diagAnswers[state.diagCurrent]===v?'sel':'')+'">'+v+'<span class="lab">'+labels[v]+'</span></button>'}).join("")+'</div></div><div class="action-row">'+(state.diagCurrent>0?'<button class="btn btn-ghost" id="diagBack">&larr; Back</button>':'')+'<button class="btn btn-ghost" id="diagCancel">Cancel</button></div>';
+  c.querySelectorAll('.diag-scale button').forEach(function(b){
+    b.onclick=function(){
+      state.diagAnswers[state.diagCurrent]=parseInt(b.dataset.val);
+      c.querySelectorAll('.diag-scale button').forEach(function(x){x.classList.remove('sel')});
+      b.classList.add('sel');
+      saveState();
+      setTimeout(function(){
+        if(state.diagCurrent<qs.length-1){state.diagCurrent++;renderDiagQuestion()}
+        else{computeDiagResult();renderResults()}
+      },250);
+    };
+  });
+  var bb=document.getElementById('diagBack');
+  if(bb)bb.onclick=function(){if(state.diagCurrent>0){state.diagCurrent--;renderDiagQuestion()}};
+  var cb=document.getElementById('diagCancel');
+  if(cb)cb.onclick=function(){state.diagCurrent=0;state.diagAnswers=new Array(15).fill(null);saveState();navigateTo('today')};
+}
+function computeDiagResult(){
+  var scores={roots:0,trunk:0,branches:0,leaves:0,fruits:0};
+  var qs=currentQuestions();
+  qs.forEach(function(q,i){if(state.diagAnswers[i]!==null)scores[q.layer]+=state.diagAnswers[i]});
+  state.diagScores=scores;
+  var max=-1,win="roots";
+  LORDER.forEach(function(l){if(scores[l]>max){max=scores[l];win=l}});
+  state.diagStrained=win;
+  var strained = LORDER.filter(function(l){return scoreStatus(scores[l])==="strained"});
+  strained.sort(function(a,b){return scores[b]-scores[a]});
+  state.focusLayer = strained.length > 0 ? strained[0] : win;
+  // Push to history (date-keyed, replaces same-day)
+  var entry = {d:today(), s:scores};
+  if(state.hist.length && state.hist[state.hist.length-1].d === entry.d) state.hist[state.hist.length-1] = entry;
+  else state.hist.push(entry);
+  if(state.hist.length > 20) state.hist = state.hist.slice(-20);
+  saveState();
+}
+
+/* ============================================================
+   RESULTS — big block tree-state + small file verdict + emergency picking
+   ============================================================ */
+function renderResults(){
+  var c=document.getElementById('diagContent');
+  var scores=state.diagScores;
+  var ctxLabel = state.context && state.context!=="self" ? CONTEXTS.filter(function(x){return x.id===state.context})[0].title : null;
+
+  var strainedLayers = LORDER.filter(function(l){return scoreStatus(scores[l])==="strained"});
+  var anyStrained = strainedLayers.length > 0;
+  var fl = state.focusLayer;
+  if(!fl){
+    if(anyStrained){
+      strainedLayers.sort(function(a,b){return scores[b]-scores[a]});
+      fl = strainedLayers[0];
+    } else {
+      fl = LORDER.slice().sort(function(a,b){return scores[b]-scores[a]})[0];
+    }
+    state.focusLayer = fl;
+  }
+
+  // Total emergencies across the whole tree
+  var totalEm = 0;
+  LORDER.forEach(function(l){ totalEm += (state.emergencyPicks[l] || []).length; });
+
+  c.innerHTML='<div class="results-container">'+
+    '<div class="results-header"><h1>Your Needs Tree, this season.</h1><p>Take a look at the state of your tree.'+(ctxLabel?' <span style="font-size:.85rem;color:var(--mute)">Context: '+ctxLabel+'</span>':'')+'</p></div>'+
+    '<div style="max-width:520px;margin:0 auto 20px;font-size:.78rem;color:var(--mute);text-align:center">'+
+      '<span style="color:var(--c-healthy);font-weight:600">0–3 healthy</span> · '+
+      '<span style="color:var(--c-moderate);font-weight:600">4–7 under strain</span> · '+
+      '<span style="color:var(--c-strained);font-weight:600">8–12 strained</span>'+
+    '</div>'+
+    '<div class="tree-state" id="treeState">'+
+      LORDER.slice().reverse().map(function(l){
+        var st=scoreStatus(scores[l]);
+        var pct=Math.min(100,(scores[l]/12)*100);
+        var emCount=state.emergencyPicks[l]?state.emergencyPicks[l].length:0;
+        var isOpen = (l === fl);
+        return '<div class="ts-row '+st+(isOpen?' open':'')+'" data-layer="'+l+'">'+
+          '<div class="ts-line">'+
+            '<span class="ts-name">'+L[l]+'</span>'+
+            (emCount>0?'<span class="ts-badge">'+emCount+'</span>':'')+
+            '<span class="ts-score">'+scores[l]+'/12 · '+st+'</span>'+
+            '<span class="ts-track"><span class="ts-fill" style="width:'+pct+'%"></span></span>'+
+            '<span class="ts-caret">'+(isOpen?'▾':'▸')+'</span>'+
+          '</div>'+
+          (isOpen?'<div class="ts-panel" id="tsPanel"></div>':'')+
+        '</div>';
+      }).join("")+
+    '</div>'+
+    '<div class="results-detail" style="border-color:var(--moss);border-width:2px;margin-top:20px;text-align:center">'+
+      '<h2 style="font-size:1.1rem">'+(totalEm>0?'See your focus on the Today page':'Your tree is ready')+'</h2>'+
+      '<p style="font-size:.9rem;color:var(--mute)">'+
+        (totalEm>0
+          ? 'You picked <strong>'+totalEm+'</strong> emergency need'+(totalEm>1?'s':'')+'. Today shows the if-then plan for each one. Open My Tree to write the plans — they show up on Today, so you see them again tomorrow.'
+          : 'Your tree is built. Open My Tree to see the layers, add what\'s missing, and mark the needs that matter right now.')+
+      '</p>'+
+      '<div class="action-row" style="justify-content:center;margin-top:12px">'+
+        (totalEm>0?'<button class="btn btn-primary" onclick="navigateTo(\'today\')">Go to Today →</button>':'')+
+        '<button class="btn btn-outline" onclick="navigateTo(\'tree\')">See my tree</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="action-row" style="margin-top:20px"><button class="btn btn-outline" id="retakeBtn">Retake diagnostic</button></div>'+
+    '<div class="safety-note">Reflection tool, not therapy or diagnosis.</div>'+
+  '</div>';
+
+  document.querySelectorAll('#treeState .ts-row').forEach(function(el){
+    el.onclick=function(e){
+      if(e.target.closest('.ts-panel')) return;
+      state.focusLayer=el.dataset.layer;
+      saveState();
+      renderResults();
+    };
+  });
+  document.getElementById('retakeBtn').onclick=function(){
+    state.diagAnswers=new Array(15).fill(null);state.diagCurrent=0;state.diagScores=null;state.diagStrained=null;state.focusLayer=null;
+    state.emergencyPicks={roots:[],trunk:[],branches:[],leaves:[],fruits:[]};
+    state.chosenActions={};state.customActions={};state.actionIndex={};state.ifThenCue={};state.ifThenAction={};
+    saveState();
+    renderDiagnostic();
+  };
+  renderLayerFocus(fl, scores);
+}
+function renderLayerFocus(layer, scores){
+  var slot=document.getElementById('tsPanel');
+  if(!slot) return;
+  var info=LAYER_INFO[layer];
+  var st=scoreStatus(scores[layer]);
+  var color=Lcolor[layer];
+  var needs = needsForLayer(layer);
+  var picks = state.emergencyPicks[layer] || [];
+  var totalEm = 0;
+  LORDER.forEach(function(l){ totalEm += (state.emergencyPicks[l] || []).length; });
+  var capReached = totalEm >= 3;
+
+  var head =
+    '<div style="margin-bottom:14px">'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:'+color+';margin-bottom:6px">'+L[layer]+' · '+scores[layer]+'/12 · '+st+'</div>'+
+      '<p style="font-size:.88rem;line-height:1.55;margin-bottom:8px"><strong>What it is:</strong> '+info.what+'</p>'+
+      '<p style="font-size:.88rem;line-height:1.55;margin-bottom:8px"><strong>What it solves:</strong> '+info.solves+'</p>'+
+      '<p style="font-size:.88rem;line-height:1.55"><strong>Why it comes first:</strong> '+info.priority+'</p>'+
+    '</div>';
+
+  var sortLabel =
+    '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-top:16px;margin-bottom:6px">Pick your emergencies across the whole tree</div>'+
+    '<p style="font-size:.82rem;color:var(--mute);margin-bottom:10px">Emergency means: <strong>starving right now</strong>. You can have three in total, across every layer. The squeeze is the point.</p>'+
+    '<div class="sort-counter" id="sortCounter" style="margin-bottom:8px;font-size:.82rem"><strong>'+totalEm+'</strong> of 3 total selected</div>';
+
+  var sortHtml =
+    sortLabel+
+    '<div class="sort-grid" id="sortGrid" style="margin-bottom:0">'+needs.map(function(n){
+      var sel=picks.indexOf(n[1])>=0;
+      var disabled = (!sel && capReached) ? true : false;
+      return '<button class="sort-card'+(sel?' selected':'')+(disabled?' disabled':'')+'" data-need="'+esc(n[1])+'"><div class="sc-name">'+esc(n[1])+'</div><div class="sc-desc">'+esc(n[2])+'</div></button>';
+    }).join("")+'</div>'+
+    '<div id="reframeSlot"></div>'+
+    (capReached?'<div class="sort-complete" style="margin-top:14px">Three emergencies picked. Tap another layer above, or write your plans below.</div>':'');
+
+  slot.innerHTML = head + sortHtml;
+
+  document.querySelectorAll('#sortGrid .sort-card').forEach(function(el){
+    el.onclick=function(e){
+      e.stopPropagation();
+      var name=el.dataset.need;
+      var arr = state.emergencyPicks[layer];
+      var i=arr.indexOf(name);
+      if(i>=0){arr.splice(i,1)}
+      else{
+        if(totalEm>=3){alert("Three emergencies total. Remove one first. The squeeze is the point.");return}
+        arr.push(name);
+        if(state.treeNeeds[layer].indexOf(name)<0) state.treeNeeds[layer].push(name);
+      }
+      saveState();
+      renderResults();
+    };
+  });
+  renderReframesFor(layer);
+}
+function renderReframesFor(layer){
+  var slot=document.getElementById('reframeSlot');
+  if(!slot)return;
+  var picks = state.emergencyPicks[layer] || [];
+  if(picks.length===0){slot.innerHTML="";return}
+
+  slot.innerHTML =
+    '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-top:20px;margin-bottom:8px">Choose what action you can take</div>'+
+    picks.map(function(name){
+      var r=reframeFor(name);
+      var idx = state.actionIndex[name] || 0;
+      var action = state.chosenActions[name] || r.actions[idx % r.actions.length];
+      var note = state.customActions[name] || "";
+      return '<div class="reframe-item" style="margin-top:10px"><div class="ri-need"><span class="ri-dot" style="background:var(--c-strained)"></span>'+esc(name)+'</div>'+
+        '<div class="ri-block"><div class="ri-label">Intellectualization</div><div class="ri-text excuse">&ldquo;'+esc(r.excuse)+'&rdquo;</div></div>'+
+        '<div class="ri-block"><div class="ri-label">Maladaptive strategy</div><div class="ri-text strategy">'+esc(r.strategy)+'</div></div>'+
+        '<div class="ri-block"><div class="ri-label">Flip it — suggested action</div><div class="ri-text action">'+esc(action)+'</div>'+
+          '<div class="action-row left" style="margin-top:8px"><button class="btn btn-outline btn-small" data-shuffle="'+esc(name)+'">Shuffle option</button></div>'+
+        '</div>'+
+        '<div class="ri-block"><div class="ri-label">Your version</div><textarea class="ri-input" data-need="'+esc(name)+'" placeholder="Write your own action plan for this need...">'+esc(note)+'</textarea></div>'+
+      '</div>';
+    }).join("")+
+    '<p style="font-size:.82rem;color:var(--mute);margin-top:16px;text-align:center">Open this need on My Tree to write the if-then plan. It shows up on Today, so you see it again tomorrow.</p>';
+
+  slot.querySelectorAll('[data-shuffle]').forEach(function(b){
+    b.onclick=function(e){
+      e.stopPropagation();
+      var name=b.dataset.shuffle;
+      var r=reframeFor(name);
+      state.actionIndex[name]=((state.actionIndex[name]||0)+1) % r.actions.length;
+      delete state.chosenActions[name];
+      saveState();
+      renderReframesFor(layer);
+    };
+  });
+  slot.querySelectorAll('.ri-input').forEach(function(t){t.oninput=function(){state.customActions[t.dataset.need]=t.value;saveState()}});
+}
+
+/* ============================================================
+   TODAY — small file's sticky plans + big block's manifesto + history
+   ============================================================ */
+function renderToday(){
+  var d=new Date();
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var dateEl=document.getElementById('todayDate');
+  if(dateEl)dateEl.textContent=months[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear();
+  var body=document.getElementById('todayBody');
+  if(!body)return;
+  if(!state.diagScores){
+    body.innerHTML='<div class="empty-state"><div class="es-icon">O</div><h3>Start with the diagnostic</h3><p>Fifteen statements. Two minutes. It will tell you which layers of your tree are under strain.</p><div class="action-row"><button class="btn btn-primary" onclick="navigateTo(\'diagnostic\')">Take the diagnostic</button></div></div>';
+    return;
+  }
+  var scores=state.diagScores;
+
+  // If-then plans for sticky notes
+  var plans = [];
+  LORDER.forEach(function(layer){
+    (state.treeNeeds[layer] || []).forEach(function(name){
+      var cue = state.ifThenCue[name];
+      var action = state.ifThenAction[name];
+      if(cue && action) plans.push({layer:layer, name:name, cue:cue, action:action});
+    });
+  });
+  plans = plans.slice(0, 4);
+
+  // Manifesto from nonNegotiables
+  var manifesto = [];
+  LORDER.forEach(function(layer){
+    (state.nonNegotiables[layer] || []).forEach(function(name){
+      manifesto.push({layer:layer, name:name});
+    });
+  });
+
+  var manifestoHtml = "";
+  if(manifesto.length > 0){
+    manifestoHtml =
+      '<div class="sticky-section-title" style="margin-top:32px">Your non-negotiables</div>'+
+      '<div style="max-width:640px;margin:0 auto 8px;background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:6px 14px">'+
+      manifesto.map(function(m, i){
+        var plan = state.ifThenAction[m.name] ? ('If '+(state.ifThenCue[m.name]||'…')+', then I will '+state.ifThenAction[m.name]+'.') : null;
+        var safe = m.name.replace(/'/g, "\\'");
+        return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:'+(i<manifesto.length-1?'1px solid var(--line)':'none')+'">'+
+          '<div style="font-family:var(--font-display);font-weight:700;font-size:1.02rem;line-height:1.2;flex:1;min-width:0;color:'+Lcolor[m.layer]+'">'+esc(m.name)+'</div>'+
+          (plan?
+            '<div style="font-size:.78rem;color:var(--mute);font-style:italic;flex:1.4;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(plan)+'</div>'
+            :
+            '<a href="#" onclick="event.preventDefault();openDrawer(\''+m.layer+'\',\''+safe+'\')" style="font-size:.75rem;color:var(--moss);text-decoration:none;flex:0 0 auto">Write plan →</a>'
+          )+
+          '<button type="button" onclick="removeFromManifesto(\''+m.layer+'\',\''+safe+'\')" style="background:none;border:none;color:var(--mute);font-size:1.1rem;line-height:1;padding:0 2px;cursor:pointer;font-family:inherit;flex-shrink:0" aria-label="Remove">×</button>'+
+        '</div>';
+      }).join("")+
+      '</div>';
+  }
+
+  var focusHtml = "";
+  if(plans.length > 0){
+    focusHtml =
+      '<div class="sticky-section-title">Your focus this week</div>'+
+      '<div class="sticky-grid">'+
+        plans.map(function(p){
+          return '<div class="sticky-note" onclick="openDrawer(\''+p.layer+'\',\''+p.name.replace(/'/g,"\\'")+'\')">'+
+            '<div class="sn-tag" style="color:'+Lcolor[p.layer]+'">'+L[p.layer]+'</div>'+
+            '<div style="font-family:var(--font-display);font-weight:700;font-size:1.02rem;line-height:1.25;margin-bottom:8px">'+esc(p.name)+'</div>'+
+            '<div class="sn-plan">If '+esc(p.cue)+', then I will '+esc(p.action)+'.</div>'+
+            '<div class="sn-edit">Tap to adjust →</div>'+
+          '</div>';
+        }).join("")+
+      '</div>';
+  }
+
+  var fakeDoorHtml =
+  '<div class="sticky-grid" style="margin-bottom:28px;gap:10px">'+
+    '<div style="padding:12px 14px;border:1.5px solid var(--moss);border-radius:var(--radius-sm);background:rgba(91,143,185,.05)">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:4px">Coming</div>'+
+      '<div style="font-family:var(--font-display);font-weight:700;font-size:.92rem;line-height:1.25;margin-bottom:4px">Reminders</div>'+
+      '<p style="font-size:.78rem;color:var(--mute);margin:0 0 10px;line-height:1.4">Ping when your if-then fires.</p>'+
+      '<div id="fakeDoorSave">'+
+        '<button class="btn btn-primary btn-small" style="width:100%;justify-content:center" onclick="fakeDoorTap(\'save\')">Notify me</button>'+
+      '</div>'+
+    '</div>'+
+    '<div style="padding:12px 14px;border:1.5px solid var(--c-fruits);border-radius:var(--radius-sm);background:rgba(122,107,156,.05)">'+
+      '<div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--c-fruits);margin-bottom:4px">Coming</div>'+
+      '<div style="font-family:var(--font-display);font-weight:700;font-size:.92rem;line-height:1.25;margin-bottom:4px">Dark Needs deck</div>'+
+      '<p style="font-size:.78rem;color:var(--mute);margin:0 0 10px;line-height:1.4">The needs that hide.</p>'+
+      '<div id="fakeDoorDark">'+
+        '<button class="btn btn-outline btn-small" style="width:100%;justify-content:center" onclick="fakeDoorTap(\'dark\')">Get it</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  
+  var strained=LORDER.filter(function(l){return scoreStatus(scores[l])==="strained"});
+  var strainedText = strained.length === 0 ? "No layer is in the red right now." : strained.length === 1 ? L[strained[0]]+" is strained." : strained.map(function(l){return L[l]}).join(" and ")+" are both strained.";
+
+  // History comparison (from small file)
+  var historyHtml = "";
+  if(state.hist.length > 1){
+    var a = state.hist[state.hist.length-2], b = state.hist[state.hist.length-1];
+    historyHtml =
+      '<div class="results-detail" style="max-width:640px;margin:24px auto 24px">'+
+        '<h2 style="font-size:1.05rem">'+esc(a.d)+' vs '+esc(b.d)+'</h2>'+
+        LORDER.slice().reverse().map(function(l){
+          var diff = b.s[l[0]] - a.s[l[0]];
+          return '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:.88rem"><span>'+L[l]+'</span><span class="m">'+a.s[l[0]]+' → '+b.s[l[0]]+(diff<0?" (easier)":diff>0?" (harder)":" (same)")+'</span></div>';
+        }).join("")+
+      '</div>';
+  }
+
+  body.innerHTML='<div class="overview-summary">'+strainedText+'</div>'+
+    focusHtml+
+    fakeDoorHtml+
+    '<div class="layer-bars">'+LORDER.slice().reverse().map(function(l){
+      var st=scoreStatus(scores[l]);
+      var pct=Math.min(100,(scores[l]/12)*100);
+      var emCount=state.emergencyPicks[l]?state.emergencyPicks[l].length:0;
+      return '<div class="layer-bar-item '+st+'" onclick="navigateTo(\'tree\')" style="cursor:pointer"><div class="lbi-info"><div class="lbi-name">'+L[l]+(emCount>0?' <span class="layer-emergency-count">'+emCount+' emergency'+(emCount>1?'s':'')+'</span>':'')+'</div><div class="lbi-score">'+scores[l]+' / 12 &middot; '+st+'</div></div><div class="lbi-track"><div class="lbi-fill" style="width:'+pct+'%"></div></div></div>';
+    }).join("")+'</div>'+
+    historyHtml+
+    manifestoHtml+
+    '<div class="safety-note">Reflection tool, not therapy or diagnosis.</div>';
+}
+function removeFromManifesto(layer, name){
+  if(!state.nonNegotiables[layer]) return;
+  var idx = state.nonNegotiables[layer].indexOf(name);
+  if(idx >= 0) state.nonNegotiables[layer].splice(idx, 1);
+  saveState();
+  renderToday();
+}
+window.removeFromManifesto = removeFromManifesto;
+
+/* ============================================================
+   FAKE DOORS
+   ============================================================ */
+function fakeDoorTap(kind){
+  if(!state.fakeDoors) state.fakeDoors = {save:0, dark:0};
+  state.fakeDoors[kind] = (state.fakeDoors[kind] || 0) + 1;
+  saveState();
+  var label = kind === "save" ? "your tree, saved" : "the Dark Needs deck";
+  var formHtml =
+    '<div style="padding:12px 14px;border-radius:10px;background:rgba(91,143,185,.1);font-size:.84rem;text-align:left">'+
+      '<div style="margin-bottom:8px;color:var(--ink)">Thanks. Leave your email and we\'ll tell you when ' + label + ' is ready.</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        '<input type="email" id="fakeDoorEmail_' + kind + '" placeholder="Your email" style="flex:1;min-width:140px;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fff;font-family:var(--font-body);font-size:.85rem;color:var(--ink)">'+
+        '<button class="btn btn-primary btn-small" onclick="fakeDoorSubmit(\'' + kind + '\')">Send</button>'+
+      '</div>'+
+      '<div id="fakeDoorStatus_' + kind + '" style="font-size:.78rem;color:var(--moss);margin-top:6px;min-height:1em;text-align:left"></div>'+
+    '</div>';
+  var el = document.getElementById(kind === "save" ? "fakeDoorSave" : "fakeDoorDark");
+  if(el) el.innerHTML = formHtml;
+}
+function fakeDoorSubmit(kind){
+  var input = document.getElementById('fakeDoorEmail_' + kind);
+  var status = document.getElementById('fakeDoorStatus_' + kind);
+  if(!input || !status) return;
+  var email = input.value.trim();
+  if(!email){ status.style.color = "var(--hot)"; status.textContent = "Please enter an email."; return; }
+  var label = kind === "save" ? "Save my tree" : "Dark Needs deck";
+  status.style.color = "var(--mute)";
+  status.textContent = "Sending…";
+  fetch("https://formsubmit.co/ajax/AGOLDEOP@GMAIL.COM", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    body: JSON.stringify({ email: email, _subject: "Fake door: " + label, _template: "table" })
+  })
+  .then(function(){ status.style.color = "var(--moss)"; status.textContent = "Got it. We'll be in touch."; input.value = ""; })
+  .catch(function(){ status.style.color = "var(--hot)"; status.textContent = "Something went wrong. Try again."; });
+}
+window.fakeDoorTap = fakeDoorTap;
+window.fakeDoorSubmit = fakeDoorSubmit;
+
+/* ============================================================
+   DECK
+   ============================================================ */
+var deckFilter="core";
+function svgFor(layer){
+  var colors={roots:"#6B7F94",trunk:"#5B8FB9",branches:"#4A9DB8",leaves:"#7BA8C4",fruits:"#7A6B9C",dark:"#1B2A38"};
+  var c=colors[layer]||"#5B8FB9";
+  if(layer==="dark"){
+    return '<svg viewBox="0 0 100 133" preserveAspectRatio="xMidYMid slice"><rect width="100" height="133" fill="'+c+'"/><circle cx="50" cy="55" r="22" fill="none" stroke="#E7B3C9" stroke-width="1.5"/><path d="M50 33 L50 77 M28 55 L72 55" stroke="#E7B3C9" stroke-width="1" opacity=".5"/><text x="50" y="120" text-anchor="middle" font-family="Georgia" font-size="7" fill="#E7B3C9">DARK NEED</text></svg>';
+  }
+  return '<svg viewBox="0 0 100 133" preserveAspectRatio="xMidYMid slice"><rect width="100" height="133" fill="'+c+'" opacity=".15"/><path d="M50 115 L50 55" stroke="'+c+'" stroke-width="3"/><circle cx="50" cy="45" r="18" fill="none" stroke="'+c+'" stroke-width="1.5" opacity=".6"/><text x="50" y="125" text-anchor="middle" font-family="Georgia" font-size="7" fill="'+c+'" letter-spacing="1">'+layer.toUpperCase()+'</text></svg>';
+}
+function renderDeck(filter){
+  deckFilter=filter||"core";
+  document.querySelectorAll('.deck-tab').forEach(function(t){t.classList.toggle('active',t.dataset.filter===deckFilter)});
+  var grid=document.getElementById('deckGrid');
+
+  if(deckFilter==="core"){
+    var ordered = allCoreNeedsOrdered();
+    grid.innerHTML = ordered.map(function(c){
+      return '<div class="deck-card '+c[0]+'" style="--ck:'+Lcolor[c[0]]+'" onclick="openDrawer(\''+c[0]+'\',\''+esc(c[1]).replace(/'/g,"\\'")+'\')"><div class="dc-art">'+svgFor(c[0])+'</div><div class="dc-body"><div class="dc-tag">'+L[c[0]]+'</div><div class="dc-name">'+esc(c[1])+'</div><div class="dc-desc">'+esc(c[2])+'</div></div></div>';
+    }).join("");
+    return;
+  }
+
+  if(deckFilter==="dark"){
+    var darkVisible = D.slice(0, 2);
+    var teaserStrategies = [
+      {need:"Control", strategy:"When you notice yourself micromanaging a plan, ask: what am I afraid will happen if I let go? Name the fear before you act."},
+      {need:"Attention", strategy:"Before you tell a story to get a reaction, ask: what do I actually want to be seen for right now? Name that, not the story."}
+    ];
+    grid.innerHTML =
+      darkVisible.map(function(d){
+        return '<div class="deck-card dark">'+
+          '<div class="dc-art">'+svgFor("dark")+'</div>'+
+          '<div class="dc-body"><div class="dc-tag">Dark need</div>'+
+          '<div class="dc-name">'+esc(d[0])+'</div>'+
+          '<div class="dc-desc"><em>Shadow:</em> '+esc(d[2])+'</div>'+
+          '<div class="dc-desc"><em>Integrated:</em> '+esc(d[3])+'</div>'+
+        '</div></div>';
+      }).join("")+
+      '<div class="deck-card" style="border-style:dashed;grid-column:span 2;background:var(--card)">'+
+        '<div class="dc-body" style="padding:20px;text-align:center">'+
+          '<div style="font-family:var(--font-display);font-weight:700;font-size:1.05rem;margin-bottom:6px">9 more dark needs</div>'+
+          '<div style="font-size:.82rem;color:var(--mute);margin-bottom:14px">Control. Power. Attention. Revenge. Destruction. The ones you were taught not to have.</div>'+
+          '<div class="action-row" style="justify-content:center;margin-top:0">'+
+            '<button class="btn btn-primary btn-small" onclick="fakeDoorTap(\'dark\')">Get the Dark Needs deck</button>'+
+          '</div>'+
+          '<div id="fakeDoorDark" style="max-width:360px;margin:12px auto 0"></div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="grid-column:1/-1;margin-top:24px;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)">Strategies that work with these</div>'+
+      teaserStrategies.map(function(t){
+        return '<div class="deck-card strat">'+
+          '<div class="dc-art">'+svgFor("dark")+'</div>'+
+          '<div class="dc-body">'+
+            '<div class="dc-tag">For the '+t.need+' need</div>'+
+            '<div class="dc-name" style="font-size:.9rem;line-height:1.4">'+t.strategy+'</div>'+
+          '</div>'+
+        '</div>';
+      }).join("");
+    return;
+  }
+}
+
+/* ============================================================
+   TREE
+   ============================================================ */
+function renderTreeMap(){
+  var container=document.getElementById('treeMapContainer');
+  var scores = state.diagScores || null;
+  var existingNote = document.querySelector('.tm-focus-note');
+  if(existingNote) existingNote.remove();
+  container.innerHTML=LORDER.slice().reverse().map(function(l){
+    var needs=state.treeNeeds[l]||[];
+    var st = scores ? scoreStatus(scores[l]) : "unknown";
+    var layerClass = st === "strained" ? " tm-strained" : "";
+    var needsHtml=needs.length>0?needs.map(function(n,i){
+      var em=isEmergency(l,n)?' emergency':'';
+      var safeName = n.replace(/'/g, "\\'");
+      return '<span class="tm-need'+em+'" style="background:'+Lcolor[l]+'" onclick="openDrawer(\''+l+'\',\''+safeName+'\')">'+esc(n)+' <span class="remove" onclick="event.stopPropagation();removeNeed(\''+l+'\','+i+')">&times;</span></span>';
+    }).join(""):'<span class="tm-empty">No needs here yet. Add one, or take the diagnostic and pick emergencies.</span>';
+    return '<div class="tm-layer'+layerClass+'" style="--lk:'+Lcolor[l]+'"><div class="tm-layer-head"><div class="tm-name-wrap"><span class="tm-status-dot '+st+'"></span><div><div class="tm-name">'+L[l]+'</div><div class="tm-desc">'+Ldesc[l]+'</div></div></div><div class="tm-count">'+needs.length+'</div></div><div class="tm-needs">'+needsHtml+'</div><div class="tm-actions"><button class="btn btn-outline btn-small" onclick="openAddNeedModal(\''+l+'\')">+ Add need</button></div></div>';
+  }).join("");
+  if(scores){
+    var strained=LORDER.filter(function(l){return scoreStatus(scores[l])==="strained"});
+    if(strained.length>0){
+      var note=document.createElement('div');
+      note.className="tm-focus-note";
+      note.textContent="Red dot = strained layer. Tap a need to open strategies or mark it as an emergency.";
+      container.parentNode.insertBefore(note, container.nextSibling);
+    }
+  }
+}
+function openAddNeedModal(layer){
+  var modal=document.getElementById('addNeedModal');
+  var grid=document.getElementById('modalGrid');
+  var title=document.getElementById('modalTitle');
+  var subtitle=document.getElementById('modalSubtitle');
+  if(!layer){
+    title.textContent="Add a need to your tree";
+    subtitle.textContent="Choose a layer first, then tap a need to add it.";
+    grid.innerHTML=LORDER.slice().reverse().map(function(l){return '<div class="modal-need" style="border-color:'+Lcolor[l]+';color:'+Lcolor[l]+'" data-layer="'+l+'">'+L[l]+'</div>'}).join("");
+    grid.querySelectorAll('.modal-need').forEach(function(el){el.onclick=function(){openAddNeedModal(el.dataset.layer)}});
+    modal.classList.add('show');return;
+  }
+  title.textContent="Add to "+L[layer];
+  subtitle.textContent="Tap a need to add it to your "+L[layer]+" layer.";
+  var layerNeeds=needsForLayer(layer);
+  var existing=state.treeNeeds[layer]||[];
+  grid.innerHTML=layerNeeds.map(function(c){
+    var added=existing.indexOf(c[1])>=0;
+    var safeName=c[1].replace(/'/g, "\\'");
+    return '<div class="modal-need'+(added?' added':'')+'" data-need="'+esc(safeName)+'"><div style="font-weight:700">'+esc(c[1])+'</div><div style="font-size:.72rem;color:var(--mute);margin-top:2px">'+esc(c[2])+'</div></div>';
+  }).join("");
+  grid.querySelectorAll('.modal-need:not(.added)').forEach(function(el){el.onclick=function(){addNeedToTree(layer,el.dataset.need)}});
+  modal.classList.add('show');
+}
+window.openAddNeedModal=openAddNeedModal;
+function addNeedToTree(layer,name){if(!state.treeNeeds[layer])state.treeNeeds[layer]=[];if(state.treeNeeds[layer].indexOf(name)<0)state.treeNeeds[layer].push(name);saveState();renderTreeMap();openAddNeedModal(layer)}
+window.addNeedToTree=addNeedToTree;
+function removeNeed(layer,i){state.treeNeeds[layer].splice(i,1);saveState();renderTreeMap()}
+window.removeNeed=removeNeed;
+function closeModal(){document.getElementById('addNeedModal').classList.remove('show')}
+window.closeModal=closeModal;
+document.getElementById('addNeedModal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+
+/* ============================================================
+   DRAWER
+   ============================================================ */
+function openDrawer(layer, name){
+  var d=document.getElementById('drawer');
+  var ov=document.getElementById('drawerOverlay');
+  var r=reframeFor(name);
+  var em=isEmergency(layer,name);
+  var found = C.find(function(x){return x[1]===name});
+  var desc = found ? found[2] : "";
+  var customSaveTimer = null;
+
+  function render(){
+    var idx = state.actionIndex[name] || 0;
+    var chosen = state.chosenActions[name] || null;
+    var custom = state.customActions[name] || "";
+    var currentAction = chosen || r.actions[idx % r.actions.length];
+    var cueVal = state.ifThenCue[name] || "";
+    var thenVal = state.ifThenAction[name] || "";
+
+    d.innerHTML=
+      '<div class="drawer-head"><div><div class="drawer-tag" style="color:'+Lcolor[layer]+'">'+L[layer]+'</div><div class="drawer-title">'+esc(name)+'</div></div><button class="drawer-close" onclick="closeDrawer()">&times;</button></div>'+
+      (desc?'<div class="drawer-desc">'+esc(desc)+'</div>':'')+
+      '<div class="drawer-section"><div class="ds-label">Emergency need</div><div class="em-toggle'+(em?' on':'')+'" id="emToggle"><div class="toggle-dot"></div><div><div class="toggle-label">'+(em?'Marked as emergency':'Mark this as an emergency')+'</div><div class="toggle-hint">'+(em?'Tap to remove from your emergencies.':'Emergencies get a red ring on your tree.')+'</div></div></div></div>'+
+      '<div class="drawer-section"><div class="ds-label">Intellectualization</div><div class="ds-text excuse">&ldquo;'+esc(r.excuse)+'&rdquo;</div></div>'+
+      '<div class="drawer-section"><div class="ds-label">Maladaptive strategy</div><div class="ds-text strategy">'+esc(r.strategy)+'</div></div>'+
+      '<div class="drawer-section"><div class="drawer-shuffle"><div class="ds-label" style="margin:0">Pick an action</div><button class="btn btn-outline btn-small" id="drawerShuffle">Shuffle</button></div><div class="drawer-actions" id="drawerActions">'+r.actions.map(function(a,i){
+          var sel = (chosen === a) || (!chosen && i === idx);
+          return '<button type="button" class="drawer-action'+(sel?' selected':'')+'" data-idx="'+i+'">'+esc(a)+'</button>';
+        }).join("")+'</div></div>'+
+      '<div class="drawer-section" style="border:1.5px solid '+(chosen&&!(cueVal&&thenVal)?'var(--moss)':'var(--line)')+';border-radius:var(--radius-sm);padding:14px;background:'+(chosen&&!(cueVal&&thenVal)?'rgba(91,143,185,.04)':'transparent')+'">'+
+        '<div class="ds-label">If-then plan'+(chosen&&!(cueVal&&thenVal)?' · next step':(cueVal&&thenVal?' · set':''))+'</div>'+
+      '<p style="font-size:.82rem;color:var(--mute);margin-bottom:8px">The research on behavior change is clear: vague plans fail. Specific plans work. Write both halves in your own words.</p>'+
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.92rem">'+
+          '<span style="font-weight:600">If</span>'+
+          '<input type="text" id="drawerCue" placeholder="it\u2019s 6pm and I\u2019m still working" value="'+cueVal.replace(/"/g,'&quot;')+'" style="flex:1;min-width:160px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-xs);background:var(--card);font-family:var(--font-body);font-size:.88rem;color:var(--ink)">'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.92rem;margin-top:8px">'+
+          '<span style="font-weight:600">then I will</span>'+
+          '<input type="text" id="drawerThen" placeholder="close my laptop and walk for 10 minutes" value="'+thenVal.replace(/"/g,'&quot;')+'" style="flex:1;min-width:160px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-xs);background:var(--card);font-family:var(--font-body);font-size:.88rem;color:var(--ink)">'+
+        '</div>'+
+        '<div style="margin-top:10px;padding:10px 12px;border-radius:var(--radius-xs);background:var(--bg);border:1px dashed var(--line);font-size:.9rem;font-style:italic;color:var(--mute)" id="ifThenPreview">'+
+          ((cueVal && thenVal) ? 'If ' + esc(cueVal) + ', then I will ' + esc(thenVal) + '.' : 'Fill both fields and your plan will appear here.')+
+        '</div>'+
+      '</div>'+
+      '<div class="drawer-section"><div class="ds-label">Your version</div><textarea class="drawer-custom" id="drawerCustom" placeholder="Write your own action for this need...">'+esc(custom)+'</textarea><div class="drawer-save-status" id="drawerSaveStatus" style="font-size:.78rem;color:var(--moss);margin-top:6px;min-height:1em"></div></div>'+
+      '<div class="drawer-actions-row"><button class="btn btn-outline" onclick="closeDrawer()">Close</button></div>';
+
+    d.querySelectorAll('#drawerActions .drawer-action').forEach(function(b){
+      b.onclick=function(){ var i = parseInt(b.dataset.idx, 10); state.chosenActions[name] = r.actions[i]; saveState(); render(); };
+    });
+    var sh=document.getElementById('drawerShuffle');
+    if(sh)sh.onclick=function(){ state.actionIndex[name] = ((state.actionIndex[name]||0) + 1) % r.actions.length; delete state.chosenActions[name]; saveState(); render(); };
+    var cueInput = document.getElementById('drawerCue');
+    var thenInput = document.getElementById('drawerThen');
+    var previewEl = document.getElementById('ifThenPreview');
+    function refreshIfThen(){
+      if(!previewEl) return;
+      var c = cueInput ? cueInput.value.trim() : "";
+      var t = thenInput ? thenInput.value.trim() : "";
+      previewEl.textContent = (c && t) ? ('If ' + c + ', then I will ' + t + '.') : 'Fill both fields and your plan will appear here.';
+    }
+    if(cueInput)cueInput.oninput=function(){ state.ifThenCue[name]=cueInput.value; saveState(); refreshIfThen(); };
+    if(thenInput)thenInput.oninput=function(){ state.ifThenAction[name]=thenInput.value; saveState(); refreshIfThen(); };
+    var cust=document.getElementById('drawerCustom');
+    var status=document.getElementById('drawerSaveStatus');
+    if(cust)cust.oninput=function(){
+      state.customActions[name]=cust.value;
+      if(status){status.textContent="Saving…";status.style.color="var(--mute)"}
+      if(customSaveTimer)clearTimeout(customSaveTimer);
+      customSaveTimer=setTimeout(function(){if(status){status.textContent="Saved ✓";status.style.color="var(--moss)"}saveState()},400);
+    };
+    if(cust && state.customActions[name]){ if(status){status.textContent="Saved ✓";status.style.color="var(--moss)"} }
+    var emT=document.getElementById('emToggle');
+    if(emT)emT.onclick=function(){
+      var arr=state.emergencyPicks[layer];
+      var i=arr.indexOf(name);
+      var totalEm = 0;
+      LORDER.forEach(function(l){ totalEm += (state.emergencyPicks[l] || []).length; });
+      if(i>=0){arr.splice(i,1)}
+      else{
+        if(totalEm>=3){alert("Three emergencies total. Remove one first. The squeeze is the point.");return}
+        arr.push(name);
+        if(state.treeNeeds[layer].indexOf(name)<0) state.treeNeeds[layer].push(name);
+      }
+      em = isEmergency(layer,name);
+      saveState();
+      renderTreeMap();
+      render();
+    };
+  }
+  render();
+  d.classList.add('show');
+  ov.classList.add('show');
+}
+window.openDrawer=openDrawer;
+function closeDrawer(){
+  var d=document.getElementById('drawer');
+  var ov=document.getElementById('drawerOverlay');
+  if(d){d.classList.remove('show');d.innerHTML=''}
+  if(ov)ov.classList.remove('show');
+}
+window.closeDrawer=closeDrawer;
+
+/* ============================================================
+   JOURNAL
+   ============================================================ */
+function renderJournal(){
+  var jc=document.getElementById('journalContent');
+  if(!jc)return;
+  var prompt = "";
+  if(state.emergencyPicks){
+    var firstEm = null;
+    LORDER.forEach(function(l){ if(!firstEm && state.emergencyPicks[l] && state.emergencyPicks[l].length) firstEm = state.emergencyPicks[l][0]; });
+    if(firstEm) prompt = 'What did it cost you this week to treat '+firstEm+' as optional?';
+  }
+  if(!prompt) prompt = "What are you carrying today?";
+  var newEntry='<div class="journal-new"><h3>Today\'s reflection</h3><p style="font-size:.88rem;color:var(--mute);margin-bottom:12px"><em>'+esc(prompt)+'</em></p><textarea id="journalText" placeholder="One sentence is enough."></textarea><div class="action-row left" style="margin-top:12px"><button class="btn btn-primary" id="saveJournalBtn">Save reflection</button></div></div>';
+  var entriesHtml=state.journal.length>0?state.journal.map(function(e,i){return '<div class="journal-entry"><div class="je-date">'+esc(e.date)+'</div><div class="je-card">'+esc(e.cardName)+'</div><div class="je-reflection">'+esc(e.text)+'</div><button class="je-delete" onclick="deleteJournalEntry('+i+')">Delete</button></div>'}).join(""):'<div class="empty-state"><div class="es-icon">O</div><h3>Your journal is quiet</h3><p>Write one reflection.</p></div>';
+  jc.innerHTML=newEntry+entriesHtml;
+  document.getElementById('saveJournalBtn').onclick=saveJournalEntry;
+}
+function saveJournalEntry(){
+  var text=document.getElementById('journalText').value.trim();
+  if(!text){alert("Write something first, even one sentence.");return}
+  var d=new Date();
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  state.journal.unshift({date:months[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(),cardName:state.diagStrained?L[state.diagStrained]:"Reflection",text:text});
+  saveState();
+  renderJournal();
+}
+function deleteJournalEntry(i){
+  state.journal.splice(i,1);
+  saveState();
+  renderJournal();
+}
+window.deleteJournalEntry = deleteJournalEntry;
+
+/* ============================================================
+   LEARN
+   ============================================================ */
+function renderLearn(){
+  var c = document.getElementById('learnBody');
+  if(!c) return;
+  var ordered = LEARN_ARTICLES.slice();
+  if(state.diagScores){
+    var strained = LORDER.filter(function(l){return scoreStatus(state.diagScores[l])==="strained"});
+    ordered.sort(function(a, b){
+      var aMatch = a.layer && strained.indexOf(a.layer) >= 0 ? 1 : 0;
+      var bMatch = b.layer && strained.indexOf(b.layer) >= 0 ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  }
+  c.innerHTML =
+    '<div class="results-detail" style="max-width:720px;margin:0 auto 24px;border-color:var(--moss)">'+
+      '<div class="rd-context">Featured</div>'+
+      '<h2 style="font-size:1.3rem">Why I built this</h2>'+
+      '<p style="font-size:.92rem;color:var(--mute);margin-top:8px">The moment that started it — not a mission statement, just what happened when I realised I\'d been treating a need as a problem for years.</p>'+
+      '<div class="action-row left" style="margin-top:14px"><button class="btn btn-outline btn-small" onclick="openArticle(\'why-i-built-this\')">Read →</button></div>'+
+    '</div>'+
+    '<div class="results-detail" style="max-width:720px;margin:0 auto 24px">'+
+      '<h2 style="font-size:1.2rem">Read by topic</h2>'+
+      '<p style="font-size:.92rem;color:var(--mute);margin-bottom:16px">Sorted by your strained layers if you\'ve done the diagnostic.</p>'+
+      '<div class="deck-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">'+ordered.map(function(a){
+        var tag = a.layer ? L[a.layer] : a.topic;
+        var tagColor = a.layer ? Lcolor[a.layer] : "var(--moss)";
+        return '<div class="deck-card" style="border-color:'+tagColor+'"><div class="dc-body" style="padding:16px"><div class="dc-tag" style="color:'+tagColor+'">'+tag+'</div><div class="dc-name" style="font-size:1.05rem">'+esc(a.title)+'</div><div class="dc-desc" style="font-size:.85rem;margin-top:6px">'+esc(a.summary)+'</div><div style="margin-top:12px"><button class="btn btn-outline btn-small" onclick="openArticle(\''+a.id+'\')">Read →</button></div></div></div>';
+      }).join("")+'</div>'+
+    '</div>'+
+    '<div class="results-detail" style="max-width:720px;margin:0 auto 24px;border-style:dashed;background:transparent">'+
+      '<h2 style="font-size:1.1rem">Partners</h2>'+
+      '<p style="font-size:.9rem;color:var(--mute)">Curated, not paid. Coming soon.</p>'+
+      '<div class="game-grid" style="margin-top:16px">'+LEARN_PARTNERS.map(function(p){
+        return '<div class="game-card locked"><span class="gc-badge">'+p.tag+'</span><div class="gc-title" style="font-size:1.05rem">'+p.name+'</div><div class="gc-for">For the '+p.for+' layer</div><div class="gc-pitch">'+p.desc+'</div></div>';
+      }).join("")+'</div>'+
+    '</div>';
+}
+window.renderLearn = renderLearn;
+function openArticle(id){
+  var a = LEARN_ARTICLES.find(function(x){return x.id === id});
+  if(!a) return;
+  var c = document.getElementById('learnBody');
+  c.innerHTML = '<div style="max-width:680px;margin:0 auto"><button class="btn btn-ghost btn-small" onclick="renderLearn()">← Back to Learn</button><div class="today-hero" style="margin-top:24px;text-align:left"><div style="font-size:.78rem;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">'+a.topic+'</div><h1 style="font-size:2rem">'+esc(a.title)+'</h1><p style="font-size:1.02rem;color:var(--mute)">'+esc(a.summary)+'</p></div><div class="results-detail" style="border:none;padding:0;background:transparent"><p style="font-size:1.05rem;line-height:1.75;white-space:pre-wrap">'+esc(a.body)+'</p></div><div class="action-row" style="margin-top:16px"><button class="btn btn-outline" onclick="renderLearn()">← Back to Learn</button></div></div>';
+}
+window.openArticle = openArticle;
+
+/* ============================================================
+   PLAY — four games
+   ============================================================ */
+var SCOPES = [
+  {id:"all", title:"All layers", sub:"The full deck — random 15."},
+  {id:"one", title:"One layer", sub:"Choose Roots, Trunk, Branches, Leaves, or Fruits."},
+  {id:"rootstrunk", title:"Roots + Trunk", sub:"The foundation."},
+  {id:"branchleaves", title:"Branches + Leaves", sub:"What you give outward."},
+  {id:"mix", title:"A mix, top to bottom", sub:"3 from each layer."}
+];
+function renderPlay(){
+  var c = document.getElementById('playContent');
+  var view = state.play.view;
+  if(view==="menu") return renderPlayMenu(c);
+  if(view==="scope") return renderPlayScope(c);
+  if(view==="sort") return renderPlaySort(c);
+  if(view==="done") return renderPlayDone(c);
+  if(view==="sayit") return renderSayIt(c);
+  if(view==="sayit-done") return renderSayItDone(c);
+  if(view==="strategy") return renderStrategyGame(c);
+  if(view==="strategy-done") return renderStrategyDone(c);
+  renderPlayMenu(c);
+}
+function renderPlayMenu(c){
+  var games = [
+    {id:"sortit", title:"Sort it", for:"Solo · 15 min", pitch:"Deal 15 cards at random. Sort them into Nice to have, Painful if unmet, Non-negotiable, Emergency. Only three may be emergencies.", live:true, fn:"startSortIt()"},
+    {id:"sayit", title:"Say it out loud", for:"Two people · 10 min", pitch:"Draw one card. Say to them: I need ___, and what I usually do instead is ___. They reply only: Thank you for telling me.", live:true, fn:"startSayIt()"},
+    {id:"strategy", title:"Guess the need", for:"Solo · 10 min", pitch:"You're dealt three strategies — real sentences people say when a need is hiding. For each one, guess which core need it's masking.", live:true, fn:"startStrategyGame()"}
+  ];
+  c.innerHTML = '<div class="play-hero"><h1>Play</h1><p>These are the games that made the deck. Play alone on a Sunday afternoon. Play with a partner on a long evening.</p></div><div class="game-grid">'+games.map(function(g){
+    return '<div class="game-card '+(g.live?'live':'locked')+'" '+(g.live?'onclick="'+g.fn+'"':'')+'><span class="gc-badge">'+(g.live?'Ready':'Coming next')+'</span><div class="gc-title">'+g.title+'</div><div class="gc-for">'+g.for+'</div><div class="gc-pitch">'+g.pitch+'</div><div class="gc-action">'+(g.live?'Start →':'In development')+'</div></div>';
+  }).join("")+'</div>';
+}
+function startSortIt(){ state.play.view="scope"; state.play.scope=null; state.play.subScope=null; renderPlay(); }
+window.startSortIt=startSortIt;
+function renderPlayScope(c){
+  c.innerHTML='<div class="play-hero"><h1>Sort it — choose a scope</h1><p>Pick where to draw from. You will get 15 cards at random.</p></div><div class="scope-grid" id="scopeGrid">'+SCOPES.map(function(s){
+    var sel = state.play.scope === s.id;
+    return '<div class="scope-card'+(sel?' selected':'')+'" data-id="'+s.id+'"><div class="sc-title">'+s.title+'</div><div class="sc-sub">'+s.sub+'</div></div>';
+  }).join("")+'</div><div id="subScopeSlot"></div><div class="game-actions"><button class="btn btn-ghost" onclick="state.play.view=\'menu\';renderPlay()">← Back</button>'+(state.play.scope && !(state.play.scope==="one" && !state.play.subScope) ? '<button class="btn btn-primary" onclick="dealCards()">Deal 15 cards</button>' : '')+'</div>';
+  document.querySelectorAll('#scopeGrid .scope-card').forEach(function(el){
+    el.onclick=function(){ state.play.scope=el.dataset.id; if(el.dataset.id==="one") state.play.subScope=state.play.subScope||"roots"; else state.play.subScope=null; renderPlay(); };
+  });
+  if(state.play.scope==="one"){
+    var slot = document.getElementById('subScopeSlot');
+    slot.innerHTML = '<div style="margin-top:16px"><div style="font-size:.82rem;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Which layer?</div><div class="scope-grid">'+LORDER.map(function(l){
+      var sel = state.play.subScope === l;
+      return '<div class="scope-card'+(sel?' selected':'')+'" data-sub="'+l+'"><div class="sc-title">'+L[l]+'</div><div class="sc-sub">'+Ldesc[l]+'</div></div>';
+    }).join("")+'</div></div>';
+    slot.querySelectorAll('[data-sub]').forEach(function(el){ el.onclick=function(){ state.play.subScope=el.dataset.sub; renderPlay(); }; });
+  }
+}
+function poolForScope(){
+  var s = state.play.scope;
+  if(s==="all") return C.slice();
+  if(s==="one") return C.filter(function(n){return n[0]===state.play.subScope});
+  if(s==="rootstrunk") return C.filter(function(n){return n[0]==="roots"||n[0]==="trunk"});
+  if(s==="branchleaves") return C.filter(function(n){return n[0]==="branches"||n[0]==="leaves"});
+  if(s==="mix"){
+    var out=[];
+    LORDER.forEach(function(l){ out = out.concat(shuffle(C.filter(function(n){return n[0]===l})).slice(0,3)); });
+    return out;
+  }
+  return C.slice();
+}
+function dealCards(){
+  var pool = poolForScope();
+  var dealt = shuffle(pool).slice(0, Math.min(15, pool.length));
+  state.play.cards = dealt.map(function(c){return {layer:c[0], name:c[1], desc:c[2]}});
+  state.play.sorted = {nice:[], painful:[], nonneg:[], emergency:[]};
+  state.play.currentIdx = 0;
+  state.play.view = "sort";
+  renderPlay();
+}
+window.dealCards=dealCards;
+function unsortNeed(pileId, idx){
+  var p = state.play;
+  var arr = p.sorted[pileId];
+  if(!arr || !arr[idx]) return;
+  var name = arr[idx];
+  arr.splice(idx, 1);
+  var cardIdx = p.cards.findIndex(function(c){return c.name === name});
+  if(cardIdx >= 0) p.currentIdx = cardIdx;
+  renderPlay();
+}
+window.unsortNeed=unsortNeed;
+function renderPlaySort(c){
+  var p = state.play;
+  if(p.currentIdx >= p.cards.length){ p.view="done"; renderPlay(); return; }
+  var current = p.cards[p.currentIdx];
+  var emCount = p.sorted.emergency.length;
+  var piles = [
+    {id:"nice", title:"Nice to have"},
+    {id:"painful", title:"Painful if unmet"},
+    {id:"nonneg", title:"Non-negotiable"},
+    {id:"emergency", title:"Emergency (max 3)", cls:"pile-emergency"+(emCount>=3?" full":"")}
+  ];
+  c.innerHTML = '<div class="play-hero"><h1>Sort it</h1><p>Card '+(p.currentIdx+1)+' of '+p.cards.length+'. Where does this need go right now?</p></div><div class="deal-area"><div class="dealt-card flipped" style="display:inline-block;padding:20px 28px;min-width:220px"><div class="dc-name" style="font-size:1.2rem">'+esc(current.name)+'</div><div class="dc-tag">'+L[current.layer]+'</div><div style="font-size:.82rem;color:var(--mute);margin-top:6px">'+esc(current.desc)+'</div></div></div><div class="pile-grid" id="pileGrid">'+piles.map(function(pl){
+    var needs = p.sorted[pl.id] || [];
+    var disabled = (pl.id==="emergency" && emCount>=3) ? ' style="opacity:.5;pointer-events:none"' : '';
+    return '<div class="pile '+(pl.cls||'')+'" data-pile="'+pl.id+'"'+disabled+'><div class="pile-title">'+pl.title+' ('+needs.length+')</div>'+needs.map(function(n,i){
+  return '<span class="pile-need" style="padding-right:6px">'+esc(n)+'<button type="button" onclick="event.stopPropagation();unsortNeed(\''+pl.id+'\','+i+')" style="background:none;border:none;color:var(--mute);font-size:1rem;line-height:1;padding:0 0 0 6px;cursor:pointer;font-family:inherit" aria-label="Remove">×</button></span>';
+}).join("")+'</div>';
+  }).join("")+'</div><div class="game-actions"><button class="btn btn-ghost" onclick="abandonSort()">Stop</button></div>';
+  document.querySelectorAll('#pileGrid .pile').forEach(function(el){
+    el.onclick=function(){
+      var id = el.dataset.pile;
+      if(id==="emergency" && p.sorted.emergency.length>=3) return;
+      p.sorted[id].push(current.name);
+      p.currentIdx++;
+      if(p.currentIdx >= p.cards.length){ finishSort(); return; }
+      renderPlay();
+    };
+  });
+}
+function abandonSort(){ state.play.view="menu"; state.play.cards=[]; state.play.sorted={}; state.play.currentIdx=0; renderPlay(); }
+window.abandonSort=abandonSort;
+function finishSort(){
+  var em = state.play.sorted.emergency || [];
+  em.forEach(function(name){
+    var found = state.play.cards.find(function(c){return c.name===name});
+    if(!found) return;
+    var layer = found.layer;
+    if(state.treeNeeds[layer].indexOf(name)<0) state.treeNeeds[layer].push(name);
+    if(state.emergencyPicks[layer].indexOf(name)<0 && state.emergencyPicks[layer].length < 3) state.emergencyPicks[layer].push(name);
+  });
+  var nn = state.play.sorted.nonneg || [];
+  nn.forEach(function(name){
+    var found = state.play.cards.find(function(c){return c.name===name});
+    if(!found) return;
+    var layer = found.layer;
+    if(!state.nonNegotiables[layer]) state.nonNegotiables[layer]=[];
+    if(state.nonNegotiables[layer].indexOf(name)<0) state.nonNegotiables[layer].push(name);
+  });
+  saveState();
+  state.play.view = "done";
+  renderPlay();
+}
+function renderPlayDone(c){
+  var p = state.play;
+  var em = p.sorted.emergency || [];
+  var nn = p.sorted.nonneg || [];
+  var painful = p.sorted.painful || [];
+  var nice = p.sorted.nice || [];
+  c.innerHTML =
+    '<div class="play-hero"><h1>You sorted it.</h1><p>Here\'s what stays with you.</p></div>'+
+    '<div style="max-width:560px;margin:0 auto 24px;background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:16px">'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--c-strained);margin-bottom:6px">Emergencies ('+em.length+')</div>'+
+      '<p style="font-size:.88rem;color:var(--mute);margin:0 0 14px">These go to your <strong>tree</strong> — ringed in red, so you see them where they live.</p>'+
+      '<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--moss);margin-bottom:6px">Non-negotiables ('+nn.length+')</div>'+
+      '<p style="font-size:.88rem;color:var(--mute);margin:0">These appear on <strong>Today</strong>, as the portrait of your character.</p>'+
+    '</div>'+
+    '<div class="pile-grid">'+
+      '<div class="pile pile-emergency"><div class="pile-title">Emergency ('+em.length+')</div>'+em.map(function(n){return '<span class="pile-need">'+esc(n)+'</span>'}).join("")+'</div>'+
+      '<div class="pile"><div class="pile-title">Non-negotiable ('+nn.length+')</div>'+nn.map(function(n){return '<span class="pile-need">'+esc(n)+'</span>'}).join("")+'</div>'+
+      '<div class="pile"><div class="pile-title">Painful if unmet ('+painful.length+')</div>'+painful.map(function(n){return '<span class="pile-need">'+esc(n)+'</span>'}).join("")+'</div>'+
+      '<div class="pile"><div class="pile-title">Nice to have ('+nice.length+')</div>'+nice.map(function(n){return '<span class="pile-need">'+esc(n)+'</span>'}).join("")+'</div>'+
+    '</div>'+
+    '<div class="closing-prompt">'+
+      '<h3>One question before you go</h3>'+
+      '<p>You marked '+(em.length?em.join(", "):"nothing")+' as an emergency. What did it cost you this week to treat '+(em.length===1?"it":"them")+' as a nice-to-have?</p>'+
+      '<textarea id="playClosingReflection" placeholder="Write whatever comes."></textarea>'+
+      '<div class="game-actions" style="margin-top:14px;justify-content:flex-start">'+
+        '<button class="btn btn-primary" onclick="savePlayReflection()">Save to journal</button>'+
+        '<button class="btn btn-outline" onclick="playAnother()">Play another</button>'+
+        '<button class="btn btn-ghost" onclick="navigateTo(\'tree\')">Open my tree →</button>'+
+      '</div>'+
+      '<div id="playSaveStatus" style="font-size:.82rem;color:var(--moss);margin-top:8px;min-height:1em"></div>'+
+    '</div>';
+}
+function savePlayReflection(){
+  var t = document.getElementById('playClosingReflection').value.trim();
+  if(!t){alert("Write something first, even one sentence.");return}
+  var d = new Date();
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  state.journal.unshift({date:months[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(),cardName:"Sort it — reflection",text:t});
+  saveState();
+  var s = document.getElementById('playSaveStatus');
+  if(s) s.textContent = "Saved to your journal ✓";
+}
+window.savePlayReflection=savePlayReflection;
+function playAnother(){ state.play.view="menu"; state.play.cards=[]; state.play.sorted={}; state.play.scope=null; state.play.subScope=null; state.play.currentIdx=0; renderPlay(); }
+window.playAnother=playAnother;
+
+/* Say it out loud */
+function startSayIt(){ state.play.view="sayit"; state.play.sayItCard=null; state.play.sayItRound=1; renderPlay(); }
+window.startSayIt=startSayIt;
+function renderSayIt(c){
+  var p = state.play;
+  if(!p.sayItCard){
+    var pool = C.slice();
+    var c2 = pool[Math.floor(Math.random()*pool.length)];
+    p.sayItCard = {layer:c2[0], name:c2[1], desc:c2[2]};
+    p.sayItRound = 1;
+  }
+  var card = p.sayItCard;
+  c.innerHTML = '<div class="play-hero"><h1>Say it out loud</h1><p>Ten minutes. One card. One sentence. No advice.</p></div><div class="deal-area"><div class="dealt-card flipped" style="display:inline-block;padding:24px 32px;min-width:240px;max-width:320px"><div class="dc-name" style="font-size:1.25rem">'+esc(card.name)+'</div><div class="dc-tag">'+L[card.layer]+'</div><div style="font-size:.82rem;color:var(--mute);margin-top:6px">'+esc(card.desc)+'</div></div></div><div class="closing-prompt" style="max-width:520px;margin:24px auto 0"><h3>Say this to them</h3><p style="font-style:italic;font-size:1rem;color:var(--ink);background:var(--bg);padding:14px;border-left:3px solid var(--moss);border-radius:8px;margin:12px 0">"I need '+esc(card.name.toLowerCase())+', and what I usually do instead is …"</p><p style="font-size:.86rem;color:var(--mute)">Finish the sentence out loud. Then stop.</p><p style="font-size:.86rem;color:var(--mute);margin-top:14px"><strong>Their only line:</strong> "Thank you for telling me."</p></div><div class="game-actions"><button class="btn btn-outline" onclick="sayAnotherRound()">Swap — next person</button><button class="btn btn-ghost" onclick="sayItDone()">Finish</button></div><div class="play-hero" style="margin-top:28px"><p style="font-size:.82rem;color:var(--mute)">Round '+p.sayItRound+'</p></div>';
+}
+function sayAnotherRound(){
+  var p = state.play;
+  var pool = C.slice();
+  var c2 = pool[Math.floor(Math.random()*pool.length)];
+  p.sayItCard = {layer:c2[0], name:c2[1], desc:c2[2]};
+  p.sayItRound = (p.sayItRound||1) + 1;
+  renderPlay();
+}
+window.sayAnotherRound=sayAnotherRound;
+function sayItDone(){ state.play.view = "sayit-done"; renderPlay(); }
+window.sayItDone=sayItDone;
+function sayItAddToManifesto(layer, name){
+  if(!state.nonNegotiables[layer]) state.nonNegotiables[layer]=[];
+  if(state.nonNegotiables[layer].indexOf(name)<0) state.nonNegotiables[layer].push(name);
+  saveState();
+  var s = document.getElementById('sayItAddStatus');
+  if(s) s.textContent = "Added ✓";
+  renderSayItDone(document.getElementById('playContent'));
+}
+window.sayItAddToManifesto = sayItAddToManifesto;
+function renderSayItDone(c){
+  var p = state.play;
+  var card = p.sayItCard;
+  var alreadyAdded = false;
+  if(card){
+    var found = C.find(function(x){return x[1]===card.name});
+    if(found && state.nonNegotiables[found[0]] && state.nonNegotiables[found[0]].indexOf(card.name)>=0){
+      alreadyAdded = true;
+    }
+  }
+  var addCardHtml = '';
+  if(card && !alreadyAdded){
+    addCardHtml =
+      '<div class="closing-prompt" style="max-width:520px;margin:0 auto 16px;border-color:var(--moss)">'+
+        '<h3 style="font-size:1.05rem">Add "'+esc(card.name)+'" to your non-negotiables?</h3>'+
+        '<p style="font-size:.88rem;color:var(--mute)">This puts it on your <strong>Today</strong> page, as the portrait of your character — the list of needs you\'ve said matter.</p>'+
+        '<div class="game-actions" style="margin-top:10px;justify-content:flex-start">'+
+          '<button class="btn btn-primary btn-small" onclick="sayItAddToManifesto(\''+card.layer+'\',\''+card.name.replace(/'/g,"\\'")+'\')">Add to my non-negotiables</button>'+
+        '</div>'+
+        '<div id="sayItAddStatus" style="font-size:.78rem;color:var(--moss);margin-top:6px;min-height:1em"></div>'+
+      '</div>';
+  } else if(card && alreadyAdded){
+    addCardHtml =
+      '<div class="closing-prompt" style="max-width:520px;margin:0 auto 16px;border-color:var(--moss)">'+
+        '<p style="font-size:.88rem;color:var(--moss);text-align:center;margin:0">This one is already on your portrait.</p>'+
+      '</div>';
+  }
+  c.innerHTML =
+    '<div class="play-hero"><h1>Done.</h1><p>The cards are not saved. What you said tonight is not recorded — unless you want to keep the one that mattered.</p></div>'+
+    addCardHtml+
+    '<div class="closing-prompt" style="max-width:520px;margin:0 auto">'+
+      '<h3>One optional question</h3>'+
+      '<p>What was it like to say that out loud without being fixed?</p>'+
+      '<textarea id="sayItReflection" placeholder="Write something, or skip this."></textarea>'+
+      '<div class="game-actions" style="margin-top:14px;justify-content:flex-start">'+
+        '<button class="btn btn-primary" onclick="saveSayItReflection()">Save to journal</button>'+
+        '<button class="btn btn-outline" onclick="playAnother()">Play another</button>'+
+      '</div>'+
+      '<div id="sayItSaveStatus" style="font-size:.82rem;color:var(--moss);margin-top:8px;min-height:1em"></div>'+
+    '</div>';
+}
+function saveSayItReflection(){
+  var t = document.getElementById('sayItReflection').value.trim();
+  if(!t){alert("Write something first, even one sentence.");return}
+  var d = new Date();
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  state.journal.unshift({date:months[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(),cardName:"Say it out loud — reflection",text:t});
+  saveState();
+  var s = document.getElementById('sayItSaveStatus');
+  if(s) s.textContent = "Saved to your journal ✓";
+}
+window.saveSayItReflection=saveSayItReflection;
+
+/* Guess the need */
+function startStrategyGame(){
+  state.play.view = "strategy";
+  var shuffled = shuffle(STRAT).slice(0,3);
+  state.play.strategyRound = shuffled.map(function(s){ return { text: s[0], need: s[1], guess: null, revealed: false }; });
+  state.play.strategyIdx = 0;
+  renderPlay();
+}
+window.startStrategyGame=startStrategyGame;
+function renderStrategyGame(c){
+  var p = state.play;
+  if(!p.strategyRound || p.strategyRound.length === 0){ p.view="menu"; renderPlay(); return; }
+  var round = p.strategyRound[p.strategyIdx];
+  var step = p.strategyIdx + 1;
+  var allNeeds = C.map(function(x){return x[1]});
+  var opts = [round.need].concat(shuffle(allNeeds.filter(function(n){return n !== round.need})).slice(0,5));
+  opts = shuffle(opts);
+  if(round.revealed){
+    c.innerHTML = '<div class="play-hero"><h1>Guess the need</h1><p>Card '+step+' of '+p.strategyRound.length+'.</p></div><div class="deal-area"><div class="dealt-card flipped" style="display:inline-block;padding:24px 28px;min-width:260px;max-width:420px"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:8px">Strategy</div><div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem;line-height:1.4">&ldquo;'+esc(round.text)+'&rdquo;</div></div></div><div class="closing-prompt" style="max-width:520px;margin:20px auto 0"><h3>You guessed: '+esc(round.guess||"—")+'</h3><p style="font-size:.9rem;color:var(--mute);margin-top:6px">This strategy often hides:</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span style="padding:6px 14px;border-radius:20px;font-size:.88rem;font-weight:600;background:var(--moss);color:#fff">'+esc(round.need)+'</span></div><div class="game-actions" style="margin-top:20px;justify-content:flex-start"><button class="btn btn-primary" onclick="strategyNext()">'+(step < p.strategyRound.length ? 'Next strategy →' : 'Finish')+'</button></div></div>';
+    return;
+  }
+  c.innerHTML = '<div class="play-hero"><h1>Guess the need</h1><p>Card '+step+' of '+p.strategyRound.length+'. What need is hiding underneath this sentence?</p></div><div class="deal-area"><div class="dealt-card flipped" style="display:inline-block;padding:24px 28px;min-width:260px;max-width:420px"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:8px">Strategy</div><div style="font-family:var(--font-display);font-weight:700;font-size:1.1rem;line-height:1.4">&ldquo;'+esc(round.text)+'&rdquo;</div></div></div><div class="closing-prompt" style="max-width:520px;margin:20px auto 0"><h3>Pick the need you think is hiding</h3><p style="font-size:.85rem;color:var(--mute);margin-bottom:12px">There is no correct answer.</p><div style="display:flex;flex-wrap:wrap;gap:8px">'+opts.map(function(n){
+    return '<button class="btn btn-outline btn-small" onclick="strategyGuess(\''+n.replace(/'/g,"\\'")+'\')">'+esc(n)+'</button>';
+  }).join("")+'</div><div class="game-actions" style="margin-top:16px;justify-content:flex-start"><button class="btn btn-ghost" onclick="abandonStrategy()">Stop</button></div></div>';
+}
+function strategyGuess(name){
+  var p = state.play;
+  p.strategyRound[p.strategyIdx].guess = name;
+  p.strategyRound[p.strategyIdx].revealed = true;
+  renderPlay();
+}
+function strategyNext(){
+  var p = state.play;
+  if(p.strategyIdx + 1 >= p.strategyRound.length){ p.view = "strategy-done"; renderPlay(); return; }
+  p.strategyIdx++;
+  renderPlay();
+}
+function abandonStrategy(){ state.play.view="menu"; state.play.strategyRound=[]; state.play.strategyIdx=0; renderPlay(); }
+window.strategyGuess=strategyGuess;
+window.strategyNext=strategyNext;
+window.abandonStrategy=abandonStrategy;
+function renderStrategyDone(c){
+  c.innerHTML = '<div class="play-hero"><h1>Done.</h1><p>Three strategies. Three guesses. The point was not the right answer. The point was to notice how many needs a single sentence can hide.</p></div><div class="closing-prompt" style="max-width:520px;margin:0 auto"><h3>One optional reflection</h3><p>Which of the three strategies felt closest to one you use?</p><textarea id="strategyReflection" placeholder="Write something, or skip this."></textarea><div class="game-actions" style="margin-top:14px;justify-content:flex-start"><button class="btn btn-primary" onclick="saveStrategyReflection()">Save to journal</button><button class="btn btn-outline" onclick="playAnother()">Play another</button></div><div id="strategySaveStatus" style="font-size:.82rem;color:var(--moss);margin-top:8px;min-height:1em"></div></div>';
+}
+function saveStrategyReflection(){
+  var t = document.getElementById('strategyReflection').value.trim();
+  if(!t){alert("Write something first, even one sentence.");return}
+  var d = new Date();
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  state.journal.unshift({date:months[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear(),cardName:"Guess the need — reflection",text:t});
+  saveState();
+  var s = document.getElementById('strategySaveStatus');
+  if(s) s.textContent = "Saved to your journal ✓";
+}
+window.saveStrategyReflection=saveStrategyReflection;
+
+/* ============================================================
+   INIT
+   ============================================================ */
+loadState();
+renderContext();
+if(state.diagScores){
+  navigateTo('today');
+}else{
+  renderLanding();
+}
+  if(state.diagScores && state.view !== 'context'){ /* stay on onboarding unless user has already completed */ }
+
+document.addEventListener('click', function(){ setTimeout(saveState, 50); }, true);
+document.addEventListener('input', function(){ saveState(); }, true);
+document.addEventListener('change', function(){ saveState(); }, true);
+window.addEventListener('beforeunload', function(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      context: state.context, diagAnswers: state.diagAnswers, diagCurrent: state.diagCurrent,
+      diagScores: state.diagScores, diagStrained: state.diagStrained, focusLayer: state.focusLayer,
+      emergencyPicks: state.emergencyPicks, nonNegotiables: state.nonNegotiables,
+      chosenActions: state.chosenActions, customActions: state.customActions,
+      actionIndex: state.actionIndex, ifThenCue: state.ifThenCue, ifThenAction: state.ifThenAction,
+      treeNeeds: state.treeNeeds, journal: state.journal, hist: state.hist,
+      darkWaitlist: state.darkWaitlist, fakeDoors: state.fakeDoors, onboardStep: state.onboardStep
+    }));
+  }catch(e){}
+});
+</script>
+</body>
+</html>
